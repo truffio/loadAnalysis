@@ -1,0 +1,301 @@
+{
+  "epics": {
+    "E1": {
+      "number": 1,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHfMg",
+      "prefixes": [
+        "MOD",
+        "VAL"
+      ]
+    },
+    "E2": {
+      "number": 12,
+      "node_id": "I_kwDOVeJ4y88AAAABbcH2pw",
+      "prefixes": [
+        "ENG"
+      ]
+    },
+    "E3": {
+      "number": 21,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIJbg",
+      "prefixes": [
+        "SMP"
+      ]
+    },
+    "E4": {
+      "number": 26,
+      "node_id": "I_kwDOVeJ4y88AAAABbcITag",
+      "prefixes": [
+        "BAT",
+        "CLI"
+      ]
+    },
+    "E5": {
+      "number": 31,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIdcw",
+      "prefixes": [
+        "LAY"
+      ]
+    },
+    "E6": {
+      "number": 34,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIikQ",
+      "prefixes": [
+        "API"
+      ]
+    },
+    "E7": {
+      "number": 40,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIsxQ",
+      "prefixes": [
+        "WIN"
+      ]
+    },
+    "E8": {
+      "number": 48,
+      "node_id": "I_kwDOVeJ4y88AAAABbcI7Ew",
+      "prefixes": [
+        "WBT"
+      ]
+    },
+    "E9": {
+      "number": 52,
+      "node_id": "I_kwDOVeJ4y88AAAABbcJCBQ",
+      "prefixes": [
+        "DOC"
+      ]
+    }
+  },
+  "sections": {
+    "MOD-TOPLEVEL": {
+      "number": 2,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHg3Q",
+      "epic": "E1"
+    },
+    "MOD-SOURCES": {
+      "number": 3,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHjKA",
+      "epic": "E1"
+    },
+    "MOD-NETWORK": {
+      "number": 4,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHlSg",
+      "epic": "E1"
+    },
+    "MOD-LOADS-SCENARIOS": {
+      "number": 5,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHnmA",
+      "epic": "E1"
+    },
+    "VAL-REPORTING": {
+      "number": 6,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHqUQ",
+      "epic": "E1"
+    },
+    "VAL-STRUCTURE": {
+      "number": 7,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHsQQ",
+      "epic": "E1"
+    },
+    "VAL-VALUES": {
+      "number": 8,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHuSA",
+      "epic": "E1"
+    },
+    "VAL-REFERENCES": {
+      "number": 9,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHwSw",
+      "epic": "E1"
+    },
+    "VAL-SCENARIOS": {
+      "number": 10,
+      "node_id": "I_kwDOVeJ4y88AAAABbcHyhA",
+      "epic": "E1"
+    },
+    "VAL-WARNINGS": {
+      "number": 11,
+      "node_id": "I_kwDOVeJ4y88AAAABbcH0kQ",
+      "epic": "E1"
+    },
+    "ENG-ENERGISATION": {
+      "number": 13,
+      "node_id": "I_kwDOVeJ4y88AAAABbcH32g",
+      "epic": "E2"
+    },
+    "ENG-DEMAND": {
+      "number": 14,
+      "node_id": "I_kwDOVeJ4y88AAAABbcH51Q",
+      "epic": "E2"
+    },
+    "ENG-FLOW": {
+      "number": 15,
+      "node_id": "I_kwDOVeJ4y88AAAABbcH74Q",
+      "epic": "E2"
+    },
+    "ENG-PARALLEL": {
+      "number": 16,
+      "node_id": "I_kwDOVeJ4y88AAAABbcH95w",
+      "epic": "E2"
+    },
+    "ENG-DC-SOURCES": {
+      "number": 17,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIA2w",
+      "epic": "E2"
+    },
+    "ENG-CHECK": {
+      "number": 18,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIC0w",
+      "epic": "E2"
+    },
+    "ENG-RESULTS": {
+      "number": 19,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIFOw",
+      "epic": "E2"
+    },
+    "ENG-PURITY": {
+      "number": 20,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIHVg",
+      "epic": "E2"
+    },
+    "SMP-TOPOLOGY": {
+      "number": 22,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIKkQ",
+      "epic": "E3"
+    },
+    "SMP-LOADS": {
+      "number": 23,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIM0g",
+      "epic": "E3"
+    },
+    "SMP-SCENARIOS": {
+      "number": 24,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIPCQ",
+      "epic": "E3"
+    },
+    "SMP-OUTCOMES": {
+      "number": 25,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIRQQ",
+      "epic": "E3"
+    },
+    "BAT-RUN": {
+      "number": 27,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIU_g",
+      "epic": "E4"
+    },
+    "BAT-EXPORT": {
+      "number": 28,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIXaQ",
+      "epic": "E4"
+    },
+    "CLI-BATCH": {
+      "number": 29,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIZQQ",
+      "epic": "E4"
+    },
+    "CLI-EXIT": {
+      "number": 30,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIbdA",
+      "epic": "E4"
+    },
+    "LAY-LAYERS": {
+      "number": 32,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIevQ",
+      "epic": "E5"
+    },
+    "LAY-ROUTING": {
+      "number": 33,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIgug",
+      "epic": "E5"
+    },
+    "API-DEFINITIONS": {
+      "number": 35,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIjtA",
+      "epic": "E6"
+    },
+    "API-UPLOAD": {
+      "number": 36,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIlkg",
+      "epic": "E6"
+    },
+    "API-ANALYSE": {
+      "number": 37,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIncQ",
+      "epic": "E6"
+    },
+    "API-BATCH": {
+      "number": 38,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIpLQ",
+      "epic": "E6"
+    },
+    "API-SERVER": {
+      "number": 39,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIq8g",
+      "epic": "E6"
+    },
+    "WIN-DEFINITIONS": {
+      "number": 41,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIuJA",
+      "epic": "E7"
+    },
+    "WIN-SCHEMATIC": {
+      "number": 42,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIwGA",
+      "epic": "E7"
+    },
+    "WIN-COLOURS": {
+      "number": 43,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIx1g",
+      "epic": "E7"
+    },
+    "WIN-LABELS": {
+      "number": 44,
+      "node_id": "I_kwDOVeJ4y88AAAABbcIzjw",
+      "epic": "E7"
+    },
+    "WIN-INTERACTION": {
+      "number": 45,
+      "node_id": "I_kwDOVeJ4y88AAAABbcI1dQ",
+      "epic": "E7"
+    },
+    "WIN-STATUS": {
+      "number": 46,
+      "node_id": "I_kwDOVeJ4y88AAAABbcI3XA",
+      "epic": "E7"
+    },
+    "WIN-STACK": {
+      "number": 47,
+      "node_id": "I_kwDOVeJ4y88AAAABbcI5VA",
+      "epic": "E7"
+    },
+    "WBT-RUN": {
+      "number": 49,
+      "node_id": "I_kwDOVeJ4y88AAAABbcI8Kg",
+      "epic": "E8"
+    },
+    "WBT-DRILLDOWN": {
+      "number": 50,
+      "node_id": "I_kwDOVeJ4y88AAAABbcI-RQ",
+      "epic": "E8"
+    },
+    "WBT-EXPORT": {
+      "number": 51,
+      "node_id": "I_kwDOVeJ4y88AAAABbcJACA",
+      "epic": "E8"
+    },
+    "DOC-README": {
+      "number": 53,
+      "node_id": "I_kwDOVeJ4y88AAAABbcJDNg",
+      "epic": "E9"
+    },
+    "SYS": {
+      "number": 54,
+      "node_id": "I_kwDOVeJ4y88AAAABbcJFJg",
+      "epic": "E9"
+    },
+    "ACC": {
+      "number": 55,
+      "node_id": "I_kwDOVeJ4y88AAAABbcJHsw",
+      "epic": "E9"
+    }
+  }
+}
