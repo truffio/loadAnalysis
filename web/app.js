@@ -4,6 +4,7 @@
 // state-changing click sends the whole map to the analyse endpoint and redraws from the answer, in
 // place, so pan and zoom survive. Answers that arrive after a later click are discarded.
 
+import { initBatch } from "./batch.js";
 import {
   CLICKABLE_KINDS, NULL_TEXT, Schematic, fmtFixed, fmtNum, fmtPower, htmlEl,
 } from "./schematic.js";
@@ -125,6 +126,7 @@ async function openDefinition(id) {
   showWarnings([]);
   app.id = id || null;
   clearDrawing();
+  batch.setDefinition(null);
   if (!id) return;
   let response;
   let body;
@@ -148,6 +150,7 @@ async function openDefinition(id) {
   fillScenarios(body.definition);
   showWarnings(body.warnings);
   schematic.build(body.layout);
+  batch.setDefinition(id);
   await analyse();
 }
 
@@ -465,6 +468,13 @@ async function upload(file) {
   showWarnings(body.warnings);
 }
 
+/** Shows a scenario of the open definition in the schematic, as a row of the batch table asks. */
+function openScenario(id) {
+  batch.showSchematic();
+  choose(dom.scenario, id);
+  selectScenario(id);
+}
+
 function selectScenario(id) {
   if (!id || !app.data) {
     app.scenario = "";
@@ -504,6 +514,7 @@ function bindControls() {
 }
 
 let schematic;
+let batch;
 
 async function start() {
   dom.definition = $("definition-select");
@@ -518,6 +529,16 @@ async function start() {
   dom.statusList = $("status-list");
   dom.hint = $("empty-hint");
   schematic = new Schematic($("schematic"), { onActivate, onHover });
+  batch = initBatch({
+    bandLabels,
+    busName: (id) => (app.info[id] && app.info[id].name) || id,
+    openScenario,
+    showView: (view) => {
+      $("workspace").dataset.view = view;
+      hideTooltip();
+    },
+    showError: (text, issues) => showMessage("error", text, issues),
+  });
   bindControls();
   fillBands(null);
   fillScenarios(null);

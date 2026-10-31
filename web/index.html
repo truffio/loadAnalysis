@@ -14,7 +14,7 @@
         <span>Definition</span>
         <select id="definition-select"></select>
       </label>
-      <label class="button" for="definition-upload">Upload definition</label>
+      <label class="button" for="definition-upload" title="Upload a definition file">Upload</label>
       <input type="file" id="definition-upload" accept=".json,application/json">
       <span class="divider" aria-hidden="true"></span>
       <label class="field">
@@ -26,6 +26,14 @@
         <select id="scenario-select"></select>
       </label>
       <button type="button" id="reset">Reset</button>
+      <span class="divider" aria-hidden="true"></span>
+      <button type="button" id="run-batch" disabled>Run all scenarios</button>
+      <button type="button" id="export-csv" disabled title="Download the last results as CSV">Export CSV</button>
+      <button type="button" id="export-json" disabled title="Download the last results as JSON">Export JSON</button>
+      <div class="views" role="group" aria-label="View">
+        <button type="button" id="show-schematic" aria-pressed="true">Schematic</button>
+        <button type="button" id="show-batch" aria-pressed="false" disabled>Batch</button>
+      </div>
     </header>
 
     <main class="workspace" id="workspace" data-view="schematic">
@@ -39,6 +47,33 @@
           </g>
         </svg>
         <p id="empty-hint" class="hint">Choose a definition, or upload one, to draw its schematic.</p>
+      </section>
+
+      <section class="batch" id="view-batch" aria-label="Batch results">
+        <div class="batch-head">
+          <h2>Scenario results</h2>
+          <p id="batch-summary" aria-live="polite"></p>
+        </div>
+        <p id="batch-empty" class="note">Press Run all scenarios to analyse every scenario of the open definition.</p>
+        <div class="table-wrap">
+          <table id="batch-table">
+            <thead>
+              <tr>
+                <th><span class="visually-hidden">Detail</span></th>
+                <th>Scenario</th>
+                <th>Name</th>
+                <th>Result</th>
+                <th>Worst element</th>
+                <th>Worst band</th>
+                <th>Smallest margin (%)</th>
+                <th>Overloads</th>
+                <th>Configuration errors</th>
+                <th>Unpowered essential loads</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </section>
 
       <aside class="sidebar" id="sidebar" aria-label="Status">
