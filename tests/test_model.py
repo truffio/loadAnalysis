@@ -12,6 +12,7 @@ from conftest import (
     has_error,
     path_of,
     pick,
+    run,
     setp,
     swap,
     warnings_at,
@@ -146,6 +147,7 @@ def test_duration_s_is_known():
     result = accepted(doc)
     assert unknown_key_warnings(result, "duration_s") == []
     assert result.definition.settings.bands.short_term.duration_s == 5
+    assert run(doc) == run(fx("FX-SINGLE"))
 
 
 @pytest.mark.tc("TC-MOD-007")
@@ -223,6 +225,7 @@ def test_emergency_generator_default_state():
     doc = fx("FX-RAT")
     find(doc, "RAT_AC")["default_state"] = "available"
     assert pick(accepted(doc).definition.sources, "RAT_AC").default_state == "available"
+    assert run(doc).el["ACE"].energised is True
 
 
 @pytest.mark.tc("TC-MOD-013")
@@ -343,6 +346,7 @@ def test_source_bus_key_is_only_a_warning():
     find(doc, "G2")["bus"] = "AC2"
     result = accepted(doc)
     assert len(warnings_at(result, f"{path_of(doc, 'G2')}.bus")) == 1
+    assert run(doc).el["AC2"].energised is False
 
 
 @pytest.mark.tc("TC-MOD-020")
@@ -428,10 +432,12 @@ def test_endurance_and_flight_phase_keys_are_unknown():
     doc = fx("FX-BAT")
     find(doc, "BAT")["amp_hours"] = 40
     assert len(unknown_key_warnings(accepted(doc), "amp_hours")) == 1
+    assert run(doc) == run(fx("FX-BAT"))
 
     doc = fx("FX-SINGLE")
     find(doc, "LA")["flight_phase"] = "cruise"
     assert len(unknown_key_warnings(accepted(doc), "flight_phase")) == 1
+    assert run(doc) == run(fx("FX-SINGLE"))
 
 
 @pytest.mark.tc("TC-MOD-025")

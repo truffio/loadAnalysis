@@ -227,6 +227,35 @@ def warnings_at(result, path):
     return [w for w in result.warnings if w.path == path]
 
 
+def run(doc, states=None):
+    """Validate a document, which must be valid, and analyse it."""
+    from ela.engine import analyse
+    from ela.validate import validate
+
+    result = validate(doc)
+    assert result.errors == []
+    return analyse(result.definition, states if states is not None else {})
+
+
+def triple(field):
+    """A per-band field as a (transient, short_term, continuous) tuple."""
+    return tuple(field[b] for b in BANDS)
+
+
+def D(result, id_):
+    """`D(X)` from docs/test-cases.md: the demand of element X as a triple."""
+    return triple(result.el[id_].demand)
+
+
+def near(expected, tol=1e-6):
+    """A triple comparison within the case tolerance. One figure means all three bands."""
+    import pytest
+
+    if not isinstance(expected, (tuple, list)):
+        expected = (expected,) * 3
+    return pytest.approx(tuple(expected), abs=tol)
+
+
 # --- Small definitions --------------------------------------------------------------------------
 
 

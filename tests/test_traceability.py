@@ -16,7 +16,14 @@ import pytest
 pytestmark = pytest.mark.meta
 
 # Test case prefixes built so far. The next epics append to this list.
-IMPLEMENTED_PREFIXES = ["MOD", "VAL"]
+IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG"]
+
+# Cases of an implemented prefix that cannot run yet, with what they wait for. An entry must go as
+# soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
+# run on stand-in definitions today and pick up the sample once it exists.
+DEFERRED_CASES = {
+    "TC-ENG-065": "needs ela.batch.run_batch (E4) and definitions/generic_twin.json (E3)",
+}
 
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
@@ -149,11 +156,35 @@ def test_every_mark_names_a_real_case():
 @pytest.mark.tc("TC-VAL-007")
 def test_every_implemented_case_has_a_test():
     wanted = {c for c in matrix() if c.split("-")[1] in IMPLEMENTED_PREFIXES}
-    assert sorted(wanted - cases_with_tests()) == []
+    assert sorted(wanted - cases_with_tests() - set(DEFERRED_CASES)) == []
+
+
+@pytest.mark.tc("TC-VAL-007")
+def test_deferred_cases_are_still_deferred():
+    assert sorted(set(DEFERRED_CASES) & cases_with_tests()) == []
+    assert sorted(set(DEFERRED_CASES) - set(matrix())) == []
 
 
 @pytest.mark.tc("TC-VAL-007")
 def test_every_validator_condition_has_a_passing_test(not_meta_run):
     conditions = {f"L2-VAL-{n:03d}" for n in [*range(7, 31), 32, 33]}
     assert sorted(conditions - covered_requirements()) == []
+    assert not_meta_run.returncode == 0, not_meta_run.stdout[-2000:]
+
+
+@pytest.mark.tc("TC-ENG-072")
+def test_every_engine_topic_has_a_passing_test(not_meta_run):
+    topics = {
+        "energisation": {f"L2-ENG-{n:03d}" for n in range(3, 11)},
+        "TRU efficiency": {"L2-ENG-016"},
+        "bus ties": {"L2-ENG-017", "L2-ENG-021"},
+        "source failures": {"L2-ENG-003", "L2-ENG-009"},
+        "AC paralleling detection": {"L2-ENG-028"},
+        "DC sharing": {"L2-ENG-033", "L2-ENG-034", "L2-ENG-038"},
+        "battery priority": {"L2-ENG-035", "L2-ENG-036", "L2-ENG-037"},
+        "safety margin": {"L2-ENG-041", "L2-ENG-043"},
+        "crew switch": {"L2-ENG-002", "L2-ENG-013"},
+    }
+    covered = covered_requirements()
+    assert [topic for topic, reqs in topics.items() if not reqs <= covered] == []
     assert not_meta_run.returncode == 0, not_meta_run.stdout[-2000:]
