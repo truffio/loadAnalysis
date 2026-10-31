@@ -6,6 +6,7 @@ TC-VAL-007, so they carry that mark.
 """
 
 import ast
+import importlib.util
 import re
 import subprocess
 import sys
@@ -16,7 +17,9 @@ import pytest
 pytestmark = pytest.mark.meta
 
 # Test case prefixes built so far. The next epics append to this list.
-IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG", "SMP", "BAT", "CLI", "LAY", "API", "WIN", "WBT"]
+IMPLEMENTED_PREFIXES = [
+    "MOD", "VAL", "ENG", "SMP", "BAT", "CLI", "LAY", "API", "WIN", "WBT", "DOC", "SYS", "ACC",
+]
 
 # Cases of an implemented prefix that cannot run yet, with what they wait for. An entry must go as
 # soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
@@ -117,16 +120,16 @@ def covered_requirements():
     return covered_by(collected_not_meta())
 
 
-@pytest.fixture(scope="module")
-def not_meta_run():
-    """One subprocess run of `pytest tests -m "not meta"`, shared by the cases that need it."""
-    return subprocess.run(
-        [sys.executable, "-m", "pytest", "tests", "-m", "not meta", "-q", "-p", "no:cacheprovider"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+def load_trace_report():
+    """tools/trace_report.py as a module. `tools/` is not a package."""
+    spec = importlib.util.spec_from_file_location("trace_report", ROOT / "tools" / "trace_report.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+# `not_meta_run` is a session fixture in tests/conftest.py, shared with the system and
+# acceptance cases, so the whole suite runs once in a subprocess and not once per module.
 
 
 @pytest.mark.tc("TC-VAL-007")
@@ -194,3 +197,22 @@ def test_every_engine_topic_has_a_passing_test(not_meta_run):
     covered = covered_requirements()
     assert [topic for topic, reqs in topics.items() if not reqs <= covered] == []
     assert not_meta_run.returncode == 0, not_meta_run.stdout[-2000:]
+
+
+@pytest.mark.tc("TC-VAL-007")
+def test_committed_trace_is_not_stale():
+    """docs/traceability.md equals what tools/trace_report.py generates now."""
+    committed = (ROOT / "docs" / "traceability.md").read_text("utf-8").replace("\r\n", "\n")
+    assert committed == load_trace_report().render(), (
+        "docs/traceability.md is stale: run `uv run python tools/trace_report.py`"
+    )
+
+
+@pytest.mark.tc("TC-VAL-007")
+def test_trace_has_one_row_per_requirement():
+    rows = [
+        line.split("|")[1].strip()
+        for line in (ROOT / "docs" / "traceability.md").read_text("utf-8").splitlines()
+        if re.match(r"^\| L\d-[A-Z]+-\d+ \|", line)
+    ]
+    assert sorted(rows) == sorted(requirement_ids())

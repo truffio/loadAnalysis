@@ -18,6 +18,7 @@ import sys
 import time
 import urllib.request
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -1185,3 +1186,72 @@ def e2e_run():
         text=True,
         check=False,
     )
+
+
+# --- Subprocess runs of the suite and the README checkout ---------------------------------------
+
+
+class SuiteRun:
+    """A finished `pytest tests -m "not meta"` run: its result, output and junit test records."""
+
+    def __init__(self, done, junit):
+        import xml.etree.ElementTree as ET
+
+        self.returncode = done.returncode
+        self.stdout = done.stdout
+        self.cases = []  # (classname, name, outcome) for each test, outcome passed or skipped etc.
+        for case in ET.parse(junit).getroot().iter("testcase"):
+            outcome = "passed"
+            for child in case:
+                if child.tag in ("failure", "error", "skipped"):
+                    outcome = child.tag
+            self.cases.append((case.get("classname"), case.get("name"), outcome))
+
+    @property
+    def ids(self):
+        return sorted(f"{classname}::{name}" for classname, name, _ in self.cases)
+
+
+def _run_not_meta(folder):
+    junit = Path(folder) / "junit.xml"
+    done = subprocess.run(
+        [
+            sys.executable, "-m", "pytest", "tests", "-m", "not meta", "-q",
+            "-p", "no:cacheprovider", f"--junitxml={junit}",
+        ],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return SuiteRun(done, junit)
+
+
+@pytest.fixture(scope="session")
+def not_meta_run(tmp_path_factory):
+    """One subprocess run of `pytest tests -m "not meta"`, shared by every case that needs it."""
+    return _run_not_meta(tmp_path_factory.mktemp("not_meta_run"))
+
+
+@pytest.fixture(scope="session")
+def second_not_meta_run(tmp_path_factory):
+    """A second, independent run of the same command, for the repeatability case."""
+    return _run_not_meta(tmp_path_factory.mktemp("second_not_meta_run"))
+
+
+@pytest.fixture(scope="session")
+def fresh_clone(tmp_path_factory):
+    """A fresh copy of the repository with the README's installation commands run in it.
+
+    Has `.path` and `.installed`, a list of (command, returncode, output) for each command.
+    """
+    import readme_tools as rt
+
+    clone = SimpleNamespace(path=rt.snapshot(tmp_path_factory.mktemp("clone") / "ela"), installed=[])
+    _, body = rt.section("Installation")
+    for command in rt.fenced_commands(body):
+        done = rt.run_command(command, clone.path)
+        clone.installed.append((command, done.returncode, done.stdout + done.stderr))
+        if done.returncode:
+            break
+    return clone
