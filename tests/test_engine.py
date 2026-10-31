@@ -1,7 +1,6 @@
 """C-ENGINE cases from docs/test-cases.md, except the meta case TC-ENG-072.
 
-Expected figures are the hand-worked values in the case text. TC-ENG-065 waits for `run_batch` and
-the sample, and is listed in DEFERRED_CASES in tests/test_traceability.py.
+Expected figures are the hand-worked values in the case text.
 """
 
 import copy
@@ -40,6 +39,7 @@ from conftest import (
 )
 
 import ela.engine
+from ela.batch import run_batch
 from ela.engine import analyse
 from ela.validate import validate
 
@@ -1189,3 +1189,20 @@ def test_engine_has_no_web_dependency():
         [sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, check=True
     )
     assert out.stdout.strip() == "[]"
+
+
+@pytest.mark.tc("TC-ENG-065")
+def test_one_analysis_entry_point():
+    defn = validate(json.loads(SAMPLE.read_text("utf-8"))).definition
+    results = run_batch(defn)
+    assert len(results) == len(defn.scenarios) == 15
+    for scenario, batch in zip(defn.scenarios, results, strict=True):
+        direct = analyse(defn, dict(scenario.states))
+        assert batch["scenario_id"] == scenario.id
+        assert batch["result"] == direct.verdict
+        assert batch["worst_element"] == direct.worst.element
+        assert batch["worst_band"] == direct.worst.band
+        assert batch["smallest_margin_pct"] == direct.worst.margin_pct
+        assert batch["overloads"] == len(direct.overloads)
+        assert batch["configuration_errors"] == len(direct.config_errors)
+        assert batch["unpowered_essential"] == len(direct.unpowered)
