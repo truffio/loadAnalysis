@@ -8,7 +8,20 @@ Each builder follows the document text. Fixture defaults (cap 10000, eta 0.85, `
 come from the Conventions section there.
 """
 
+import json
+import os
 import re
+import shutil
+import socket
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
+
+import pytest
+
+REPO = Path(__file__).resolve().parent.parent
 
 BANDS = ("transient", "short_term", "continuous")
 
@@ -845,3 +858,103 @@ _BUILDERS = {
 def fx(name, *args):
     """A fresh copy of a named fixture: `fx("FX-SINGLE")`, `fx("FX-ENG", 8)`."""
     return _BUILDERS[name](*args)
+
+
+# --- HTTP harness (H-DEFS, H-CLIENT, H-SERVER) --------------------------------------------------
+
+
+def put_def(folder, doc, name):
+    """Store a fixture document (or raw text or bytes) in a definitions folder as `name`."""
+    path = Path(folder) / name
+    if isinstance(doc, bytes):
+        path.write_bytes(doc)
+    elif isinstance(doc, str):
+        path.write_text(doc, encoding="utf-8")
+    else:
+        path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def defs_dir(tmp_path, monkeypatch):
+    """H-DEFS: a temporary definitions folder holding generic_twin.json, set as ELA_DEFINITIONS_DIR.
+
+    A test adds the fixtures it names with `put_def(defs_dir, fx("FX-SINGLE"), "fx_single.json")`.
+    """
+    folder = tmp_path / "defs"
+    folder.mkdir()
+    shutil.copyfile(REPO / "definitions" / "generic_twin.json", folder / "generic_twin.json")
+    monkeypatch.setenv("ELA_DEFINITIONS_DIR", str(folder))
+    return folder
+
+
+@pytest.fixture
+def client(defs_dir):
+    """H-CLIENT: a FastAPI TestClient on `ela.api.app` with H-DEFS set."""
+    from fastapi.testclient import TestClient
+
+    from ela.api import app
+
+    return TestClient(app)
+
+
+def free_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+class Server:
+    """A `uvicorn ela.api:app` subprocess on a free port."""
+
+    def __init__(self, env_dir=None, cwd=None, extra_args=()):
+        self.port = free_port()
+        env = {k: v for k, v in os.environ.items() if k != "ELA_DEFINITIONS_DIR"}
+        if env_dir is not None:
+            env["ELA_DEFINITIONS_DIR"] = str(env_dir)
+        self.proc = subprocess.Popen(
+            [sys.executable, "-m", "uvicorn", "ela.api:app", "--port", str(self.port), *extra_args],
+            env=env,
+            cwd=cwd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.url = f"http://127.0.0.1:{self.port}"
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                urllib.request.urlopen(self.url + "/api/definitions", timeout=1).close()
+                return
+            except OSError:
+                if self.proc.poll() is not None or time.monotonic() > deadline:
+                    self.stop()
+                    raise RuntimeError("server did not start") from None
+                time.sleep(0.1)
+
+    def stop(self):
+        if self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+                self.proc.wait()
+
+
+@pytest.fixture
+def start_server(defs_dir):
+    """H-SERVER: `start_server()` starts a server on H-DEFS and returns it, all stopped at teardown.
+
+    `start_server(env_dir=other)` points it at another folder, `start_server(env_dir=None)` leaves
+    the variable unset, and `cwd` sets the working directory.
+    """
+    started = []
+
+    def start(env_dir=defs_dir, cwd=None, extra_args=()):
+        server = Server(env_dir, cwd, extra_args)
+        started.append(server)
+        return server
+
+    yield start
+    for server in started:
+        server.stop()
