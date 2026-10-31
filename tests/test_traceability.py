@@ -16,14 +16,12 @@ import pytest
 pytestmark = pytest.mark.meta
 
 # Test case prefixes built so far. The next epics append to this list.
-IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG", "SMP"]
+IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG", "SMP", "BAT", "CLI"]
 
 # Cases of an implemented prefix that cannot run yet, with what they wait for. An entry must go as
 # soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
 # run on the sample through `configurations()` in tests/test_engine.py.
-DEFERRED_CASES = {
-    "TC-ENG-065": "needs ela.batch.run_batch (E4)",
-}
+DEFERRED_CASES = {}
 
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
