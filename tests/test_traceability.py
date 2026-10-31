@@ -16,7 +16,7 @@ import pytest
 pytestmark = pytest.mark.meta
 
 # Test case prefixes built so far. The next epics append to this list.
-IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG", "SMP", "BAT", "CLI", "LAY"]
+IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG", "SMP", "BAT", "CLI", "LAY", "API"]
 
 # Cases of an implemented prefix that cannot run yet, with what they wait for. An entry must go as
 # soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
