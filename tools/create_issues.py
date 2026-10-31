@@ -51,9 +51,9 @@ LABELS = {
 def parse_requirements():
     text = (ROOT / "docs/requirements.md").read_text(encoding="utf-8")
     sections, records = {}, {}
-    for m in re.finditer(r"<!-- BEGIN SECTION (\S+) -->(.*?)<!-- END SECTION \1 -->", text, re.S):
+    for m in re.finditer(r"<!-- BEGIN SECTION (\S+) -->(.*?)<!-- END SECTION \1 -->", text, re.DOTALL):
         ids = []
-        for block in re.findall(r"```req\n(.*?)```", m.group(2), re.S):
+        for block in re.findall(r"```req\n(.*?)```", m.group(2), re.DOTALL):
             fields, key = {}, None
             for line in block.splitlines():
                 if line[:1] in " \t" and key:
@@ -71,7 +71,7 @@ def parse_tests():
     text = (ROOT / "docs/test-cases.md").read_text(encoding="utf-8")
     by_req = defaultdict(list)
     all_cases = {}
-    for m in re.finditer(r"^\| (TC-[A-Z]+-\d+) \| ([^|]+) \| (L\d) \| (\w+) \|", text, re.M):
+    for m in re.finditer(r"^\| (TC-[A-Z]+-\d+) \| ([^|]+) \| (L\d) \| (\w+) \|", text, re.MULTILINE):
         all_cases[m.group(1)] = re.findall(r"L\d-[A-Z]+-\d+", m.group(2))
         for req in all_cases[m.group(1)]:
             by_req[req].append(m.group(1))
@@ -117,8 +117,8 @@ def section_body(name, ids, records, tests, epic):
         lines.append(f"- [ ] **{rid}**: {records[rid]['Statement']}")
     cases = sorted({c for rid in ids for c in tests.get(rid, [])})
     lines += ["", "## Test cases", "", ", ".join(cases) or "None", "", "## Done when", "",
-              "Every requirement above is implemented, and each listed test case has a passing "
-              '`@pytest.mark.tc("...")` test.']
+              ("Every requirement above is implemented, and each listed test case has a passing "
+              '`@pytest.mark.tc("...")` test.')]
     return "\n".join(lines)
 
 
@@ -146,8 +146,8 @@ def main():
                 f"**Allocated L2 requirements:** {len(l2)} in {len(names)} sections",
                 f"**Satisfies L1:** {', '.join(parents) or 'None'}",
                 f"**Traces to L0:** {', '.join(grand) or 'None'}", "",
-                "Requirements are in `docs/requirements.md` and test cases in "
-                "`docs/test-cases.md`. Work is tracked in the sub-issues."]
+                ("Requirements are in `docs/requirements.md` and test cases in "
+                "`docs/test-cases.md`. Work is tracked in the sub-issues.")]
         epic = create_issue(f"[{code}] {title}", "\n".join(body), ["epic"], dry)
         result["epics"][code] = {**epic, "prefixes": prefixes}
 
