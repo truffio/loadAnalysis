@@ -958,3 +958,213 @@ def start_server(defs_dir):
     yield start
     for server in started:
         server.stop()
+
+
+# --- Browser harness (H-PAGE) -------------------------------------------------------------------
+
+# Wraps fetch so that each analyse request is logged in the page, at the moment it is made. A click
+# handler has finished by the time Playwright's click returns, so a count read afterwards is exact.
+LOG_SCRIPT = """
+window.__analyse = [];
+const realFetch = window.fetch;
+window.fetch = function (input, init) {
+  const url = typeof input === "string" ? input : input.url;
+  if (init && init.method === "POST" && url.endsWith("/analyse")) {
+    window.__analyse.push({url, states: JSON.parse(init.body).states});
+  }
+  return realFetch.apply(this, arguments);
+};
+"""
+
+VIEWPORT = {"width": 1366, "height": 768}
+
+
+def rgb_of(css):
+    """(r, g, b) from a computed `rgb(...)` or `rgba(...)` colour."""
+    return tuple(float(n) for n in re.findall(r"[\d.]+", css)[:3])
+
+
+def hue_sat(rgb):
+    """Hue in degrees and HSL saturation in percent of an (r, g, b) colour."""
+    r, g, b = (v / 255 for v in rgb)
+    hi, lo = max(r, g, b), min(r, g, b)
+    delta = hi - lo
+    if delta == 0:
+        return 0.0, 0.0
+    light = (hi + lo) / 2
+    sat = delta / (1 - abs(2 * light - 1))
+    if hi == r:
+        hue = ((g - b) / delta) % 6
+    elif hi == g:
+        hue = (b - r) / delta + 2
+    else:
+        hue = (r - g) / delta + 4
+    return hue * 60, sat * 100
+
+
+def contrast(a, b):
+    """WCAG contrast ratio of two (r, g, b) colours."""
+
+    def luminance(rgb):
+        lin = [v / 255 / 12.92 if v / 255 <= 0.03928 else ((v / 255 + 0.055) / 1.055) ** 2.4 for v in rgb]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    hi, lo = sorted((luminance(a), luminance(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+class HPage:
+    """A Chromium page at 1366 x 768 open on a server over H-DEFS, with an analyse request log."""
+
+    def __init__(self, page, server, defs):
+        self.page = page
+        self.server = server
+        self.defs = defs
+        self.errors = []
+        page.on("pageerror", lambda e: self.errors.append(str(e)))
+        page.add_init_script(LOG_SCRIPT)
+        self.goto()
+
+    # --- Navigation ---
+
+    def goto(self):
+        self.page.goto(self.server.url + "/")
+        self.page.locator("#definition-select option").first.wait_for(state="attached")
+
+    def reload(self):
+        self.page.reload()
+        self.page.locator("#definition-select option").first.wait_for(state="attached")
+
+    def open(self, def_id):
+        """Choose a definition and wait for its first verdict."""
+        from playwright.sync_api import expect
+
+        self.page.select_option("#definition-select", def_id)
+        expect(self.page.locator("#status-verdict")).not_to_be_empty()
+
+    def options(self, selector="#definition-select"):
+        return self.page.locator(f"{selector} option").evaluate_all("els => els.map(e => e.value)")
+
+    # --- Log and barrier ---
+
+    @property
+    def log(self):
+        return self.page.evaluate("window.__analyse")
+
+    def settle(self):
+        """Wait for two animation frames, so that anything a handler started has been issued."""
+        self.page.evaluate("new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+
+    # --- Reading the drawing ---
+
+    def group(self, id_):
+        return self.page.locator(f'#schematic [data-id="{id_}"]')
+
+    def label(self, id_):
+        return self.page.locator(f'#schematic [data-label="{id_}"]')
+
+    def states(self):
+        """data-state of every drawn element, by id."""
+        return self.page.evaluate(
+            "Object.fromEntries([...document.querySelectorAll('#schematic [data-id]')]"
+            ".map(g => [g.dataset.id, g.dataset.state]))"
+        )
+
+    def labels(self):
+        return self.page.evaluate(
+            "Object.fromEntries([...document.querySelectorAll('#schematic [data-label]')]"
+            ".map(t => [t.dataset.label, t.textContent]))"
+        )
+
+    def view(self):
+        """(tx, ty, k) of the view transform."""
+        text = self.page.locator("#viewport").get_attribute("transform")
+        tx, ty, k = (float(n) for n in re.findall(r"-?\d+(?:\.\d+)?(?:e-?\d+)?", text))
+        return tx, ty, k
+
+    def rect(self, id_):
+        """On-screen box of an element: (x, y, width, height)."""
+        box = self.group(id_).evaluate(
+            "g => { const b = g.getBoundingClientRect(); return [b.x, b.y, b.width, b.height]; }"
+        )
+        return tuple(box)
+
+    def center(self, id_):
+        x, y, w, h = self.rect(id_)
+        return x + w / 2, y + h / 2
+
+    def svg_box(self):
+        return self.page.locator("#schematic").bounding_box()
+
+    def in_layout_units(self, id_):
+        """An element's on-screen box with the view transform undone: (x, y, width, height)."""
+        box = self.svg_box()
+        tx, ty, k = self.view()
+        x, y, w, h = self.rect(id_)
+        return (x - box["x"] - tx) / k, (y - box["y"] - ty) / k, w / k, h / k
+
+    def colour(self, id_):
+        return rgb_of(self.group(id_).evaluate("g => getComputedStyle(g).color"))
+
+    def background(self):
+        return rgb_of(
+            self.page.evaluate("getComputedStyle(document.querySelector('.drawing')).backgroundColor")
+        )
+
+    # --- Acting ---
+
+    def empty_point(self, right=False):
+        """A point at the bottom of the drawing area where no element lies."""
+        box = self.svg_box()
+        x = box["x"] + (box["width"] - 30 if right else 30)
+        y = box["y"] + box["height"] - 30
+        free = self.page.evaluate(
+            "([x, y]) => document.elementFromPoint(x, y) === document.getElementById('schematic')",
+            [x, y],
+        )
+        assert free, "expected an empty spot on the drawing"
+        return x, y
+
+    def drag(self, start, end, steps=8):
+        self.page.mouse.move(*start)
+        self.page.mouse.down()
+        self.page.mouse.move(*end, steps=steps)
+        self.page.mouse.up()
+        self.settle()
+
+
+@pytest.fixture
+def h_page(start_server, defs_dir, browser):
+    """H-PAGE: `h_page()` opens a page on the test's H-SERVER and returns an `HPage`. A test adds the
+    fixtures it names to H-DEFS first, and `h_page(has_touch=True)` gives a touch context. All pages
+    are closed at teardown, and an error raised in the browser fails the test.
+    """
+    made = []
+    servers = []
+
+    def make(has_touch=False):
+        if not servers:
+            servers.append(start_server())
+        context = browser.new_context(viewport=VIEWPORT, has_touch=has_touch, accept_downloads=True)
+        context.set_default_timeout(10_000)
+        harness = HPage(context.new_page(), servers[0], defs_dir)
+        made.append((context, harness))
+        return harness
+
+    yield make
+    for context, _ in made:
+        context.close()
+    for _, harness in made:
+        assert harness.errors == [], harness.errors
+
+
+@pytest.fixture(scope="session")
+def e2e_run():
+    """One subprocess run of `pytest tests -m "e2e and not meta"`, shared by the cases that need it."""
+    return subprocess.run(
+        [sys.executable, "-m", "pytest", "tests", "-m", "e2e and not meta", "-q", "-p", "no:cacheprovider"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
