@@ -230,7 +230,6 @@ def warnings_at(result, path):
 def run(doc, states=None):
     """Validate a document, which must be valid, and analyse it."""
     from ela.engine import analyse
-
     from ela.validate import validate
 
     result = validate(doc)

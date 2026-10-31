@@ -13,7 +13,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import ela.engine
 import pytest
 from conftest import (
     BANDS,
@@ -39,8 +38,9 @@ from conftest import (
     tru,
     tru_contactors,
 )
-from ela.engine import analyse
 
+import ela.engine
+from ela.engine import analyse
 from ela.validate import validate
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -166,7 +166,7 @@ def test_swapped_tru_input_stays_the_input():
 @pytest.mark.tc("TC-ENG-006")
 @pytest.mark.parametrize(
     "tru_state, gen_state, contactor_state",
-    itertools.product(("operative", "failed"), ("operative", "failed"), ("closed", "open")),
+    list(itertools.product(("operative", "failed"), ("operative", "failed"), ("closed", "open"))),
 )
 def test_tru_energisation_truth_table(tru_state, gen_state, contactor_state):
     states = {"TRU1": tru_state, "G1": gen_state, "TRU1_IN": contactor_state}
