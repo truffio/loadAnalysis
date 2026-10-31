@@ -1,0 +1,56 @@
+title = "ELA tool requirements"
+out = "build/ela_requirements.html"
+
+[files]
+levels = ["docs/requirements.md"]
+
+[format]
+req_fields = ["ID", "Level", "Type", "Statement", "Rationale", "Parent(s)", "Source", "Allocated to",
+              "Verification", "Status"]
+asm_fields = ["ID", "Assumption", "Rationale", "Affects", "Status"]
+heading_must_match_id = true
+
+[ids]
+patterns = ['L\d-[A-Z]+-\d+', 'DD-\d+', 'TC-[A-Z]+-\d+', 'ASM-\d+']
+
+[fields]
+allocation = "Allocated to"
+
+[links]
+derived_pattern = 'Derived\s*\(\s*(DD-\d+)\s*\)'
+source_fields = ["Source"]
+
+[display]
+label_strip = '^The [\w\s-]{1,40}? shall '
+criteria_marker = "success criteria:"
+
+[[sources]]
+type = "table"
+kind = "decision"
+label = "Design decisions"
+singular = "Design decision"
+file = "docs/decisions.md"
+id = 'DD-\d+'
+title = 1
+title_max = 60
+min_columns = 5
+columns = { Decision = 2, Rationale = 3, Source = 4 }
+
+[[sources]]
+type = "heading"
+kind = "test"
+label = "Test cases"
+singular = "Test case"
+color = "#59a14f"
+file = "docs/test-cases.md"
+pattern = '^#### (TC-[A-Z]+-\d+) — (.+)$'
+
+[[sources]]
+type = "table"
+kind = "test"
+merge = true
+file = "docs/test-cases.md"
+id = 'TC-[A-Z]+-\d+'
+min_columns = 4
+columns = { Verifies = 1, Level = 2, Method = 3 }
+links = [{ kind = "verifies", column = 1, pattern = 'L\d-[A-Z]+-\d+', label = "verifies", reverse_label = "verified by" }]
