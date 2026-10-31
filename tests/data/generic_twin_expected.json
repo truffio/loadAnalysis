@@ -1,0 +1,5196 @@
+{
+  "source": "tools/hand_calc_sample.py, from definitions/generic_twin.json. Do not edit.",
+  "scenarios": {
+    "S01": {
+      "name": "Normal - both IDGs on line, APU off",
+      "result": "PASS",
+      "worst_element": "TRU3",
+      "worst_band": "transient",
+      "smallest_margin_pct": 42.81746,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "GEN1",
+        "GEN2",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 53861.494253,
+            "short_term": 39579.33739,
+            "continuous": 35505.686275
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 53861.494253,
+            "short_term": 39579.33739,
+            "continuous": 35505.686275
+          },
+          "current": {
+            "transient": 156.120273,
+            "short_term": 114.722717,
+            "continuous": 102.915033
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S02": {
+      "name": "Generator 1 loss - before crew action",
+      "result": "PASS",
+      "worst_element": "DCBAT",
+      "worst_band": "continuous",
+      "smallest_margin_pct": 37.339286,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC2",
+        "APUGEN",
+        "BAT",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "GEN2",
+        "TRU2"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2000.0,
+            "short_term": 1560.0,
+            "continuous": 1340.0
+          },
+          "current": {
+            "transient": 71.428571,
+            "short_term": 55.714286,
+            "continuous": 47.857143
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 2000.0,
+            "short_term": 1560.0,
+            "continuous": 1340.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S03": {
+      "name": "Generator 1 loss - APU feeds AC BUS 1",
+      "result": "PASS",
+      "worst_element": "TRU3",
+      "worst_band": "transient",
+      "smallest_margin_pct": 42.81746,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "GEN2",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 53861.494253,
+            "short_term": 39579.33739,
+            "continuous": 35505.686275
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 53861.494253,
+            "short_term": 39579.33739,
+            "continuous": 35505.686275
+          },
+          "current": {
+            "transient": 156.120273,
+            "short_term": 114.722717,
+            "continuous": 102.915033
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S04": {
+      "name": "Generator 2 loss - APU feeds AC BUS 2",
+      "result": "PASS",
+      "worst_element": "TRU3",
+      "worst_band": "transient",
+      "smallest_margin_pct": 42.81746,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "GEN1",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 53861.494253,
+            "short_term": 39579.33739,
+            "continuous": 35505.686275
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 53861.494253,
+            "short_term": 39579.33739,
+            "continuous": 35505.686275
+          },
+          "current": {
+            "transient": 156.120273,
+            "short_term": 114.722717,
+            "continuous": 102.915033
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S05": {
+      "name": "APU only - both engine generators lost",
+      "result": "PASS",
+      "worst_element": "APUGEN",
+      "worst_band": "continuous",
+      "smallest_margin_pct": 16.64756,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 101955.6119,
+            "short_term": 75626.396214,
+            "continuous": 68197.45098
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 53861.494253,
+            "short_term": 39579.33739,
+            "continuous": 35505.686275
+          },
+          "current": {
+            "transient": 156.120273,
+            "short_term": 114.722717,
+            "continuous": 102.915033
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S06": {
+      "name": "Generator 1 and APU loss - Generator 2 feeds all AC",
+      "result": "PASS",
+      "worst_element": "GEN2",
+      "worst_band": "continuous",
+      "smallest_margin_pct": 16.64756,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "BAT",
+        "BTC12",
+        "BTC2E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "GEN2",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 101955.6119,
+            "short_term": 75626.396214,
+            "continuous": 68197.45098
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 44600.0,
+            "short_term": 33141.176471,
+            "continuous": 29962.352941
+          },
+          "current": {
+            "transient": 129.275362,
+            "short_term": 96.061381,
+            "continuous": 86.8474
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 101955.6119,
+            "short_term": 75626.396214,
+            "continuous": 68197.45098
+          },
+          "current": {
+            "transient": 295.523513,
+            "short_term": 219.206946,
+            "continuous": 197.673771
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": {
+            "transient": 44600.0,
+            "short_term": 33141.176471,
+            "continuous": 29962.352941
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S07": {
+      "name": "Generator 2 and APU loss - Generator 1 feeds all AC",
+      "result": "PASS",
+      "worst_element": "GEN1",
+      "worst_band": "continuous",
+      "smallest_margin_pct": 16.64756,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "BAT",
+        "BTC12",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "GEN1",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 101955.6119,
+            "short_term": 75626.396214,
+            "continuous": 68197.45098
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 101955.6119,
+            "short_term": 75626.396214,
+            "continuous": 68197.45098
+          },
+          "current": {
+            "transient": 295.523513,
+            "short_term": 219.206946,
+            "continuous": 197.673771
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S08": {
+      "name": "TRU 1 failure - TRU 2 feeds DC BUS 1",
+      "result": "PASS",
+      "worst_element": "TRU2",
+      "worst_band": "continuous",
+      "smallest_margin_pct": 26.666667,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTC12",
+        "DTCEB",
+        "GEN1",
+        "GEN2",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 51261.494253,
+            "short_term": 37438.16092,
+            "continuous": 33623.333333
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 50694.117647,
+            "short_term": 38188.235294,
+            "continuous": 34574.117647
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 3990.0,
+            "short_term": 3220.0,
+            "continuous": 2800.0
+          },
+          "input": {
+            "transient": 4694.117647,
+            "short_term": 3788.235294,
+            "continuous": 3294.117647
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 51261.494253,
+            "short_term": 37438.16092,
+            "continuous": 33623.333333
+          },
+          "current": {
+            "transient": 148.584041,
+            "short_term": 108.516408,
+            "continuous": 97.458937
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 50694.117647,
+            "short_term": 38188.235294,
+            "continuous": 34574.117647
+          },
+          "current": {
+            "transient": 146.939471,
+            "short_term": 110.690537,
+            "continuous": 100.214834
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 3990.0,
+            "short_term": 3220.0,
+            "continuous": 2800.0
+          },
+          "current": {
+            "transient": 142.5,
+            "short_term": 115.0,
+            "continuous": 100.0
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S09": {
+      "name": "TRU 2 failure - TRU 1 and ESS TRU share all DC",
+      "result": "PASS",
+      "worst_element": "TRU1",
+      "worst_band": "transient",
+      "smallest_margin_pct": 35.881834,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTC12",
+        "DTC1E",
+        "DTCEB",
+        "GEN1",
+        "GEN2",
+        "TRU1",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 55947.017504,
+            "short_term": 41216.164075,
+            "continuous": 36907.759748
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 46000.0,
+            "short_term": 34400.0,
+            "continuous": 31280.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 3672.222222,
+            "short_term": 2841.666667,
+            "continuous": 2441.666667
+          },
+          "input": {
+            "transient": 4320.261438,
+            "short_term": 3343.137255,
+            "continuous": 2872.54902
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2937.777778,
+            "short_term": 2273.333333,
+            "continuous": 1953.333333
+          },
+          "input": {
+            "transient": 3376.756066,
+            "short_term": 2613.02682,
+            "continuous": 2245.210728
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 55947.017504,
+            "short_term": 41216.164075,
+            "continuous": 36907.759748
+          },
+          "current": {
+            "transient": 162.165268,
+            "short_term": 119.467142,
+            "continuous": 106.979014
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 46000.0,
+            "short_term": 34400.0,
+            "continuous": 31280.0
+          },
+          "current": {
+            "transient": 133.333333,
+            "short_term": 99.710145,
+            "continuous": 90.666667
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9626.756066,
+            "short_term": 6873.02682,
+            "continuous": 5955.210728
+          },
+          "current": {
+            "transient": 27.903641,
+            "short_term": 19.921817,
+            "continuous": 17.26148
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 3990.0,
+            "short_term": 3220.0,
+            "continuous": 2800.0
+          },
+          "current": {
+            "transient": 142.5,
+            "short_term": 115.0,
+            "continuous": 100.0
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2937.777778,
+            "short_term": 2273.333333,
+            "continuous": 1953.333333
+          },
+          "current": {
+            "transient": 104.920635,
+            "short_term": 81.190476,
+            "continuous": 69.761905
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 9626.756066,
+            "short_term": 6873.02682,
+            "continuous": 5955.210728
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": {
+            "transient": 317.777778,
+            "short_term": 378.333333,
+            "continuous": 358.333333
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S10": {
+      "name": "ESS TRU failure - TRU 1 feeds DC ESS",
+      "result": "PASS",
+      "worst_element": "TRU1",
+      "worst_band": "transient",
+      "smallest_margin_pct": 15.666667,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTC1E",
+        "DTCEB",
+        "GEN1",
+        "GEN2",
+        "TRU1",
+        "TRU2"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 53932.352941,
+            "short_term": 39630.588235,
+            "continuous": 35548.823529
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 4830.0,
+            "short_term": 3715.0,
+            "continuous": 3195.0
+          },
+          "input": {
+            "transient": 5682.352941,
+            "short_term": 4370.588235,
+            "continuous": 3758.823529
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 53932.352941,
+            "short_term": 39630.588235,
+            "continuous": 35548.823529
+          },
+          "current": {
+            "transient": 156.325661,
+            "short_term": 114.87127,
+            "continuous": 103.040068
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 6250.0,
+            "short_term": 4260.0,
+            "continuous": 3710.0
+          },
+          "current": {
+            "transient": 18.115942,
+            "short_term": 12.347826,
+            "continuous": 10.753623
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 4830.0,
+            "short_term": 3715.0,
+            "continuous": 3195.0
+          },
+          "current": {
+            "transient": 172.5,
+            "short_term": 132.678571,
+            "continuous": 114.107143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 6250.0,
+            "short_term": 4260.0,
+            "continuous": 3710.0
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S11": {
+      "name": "RAT only - total generator loss",
+      "result": "PASS",
+      "worst_element": "RAT_AC",
+      "worst_band": "transient",
+      "smallest_margin_pct": 28.995211,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "ACESS",
+        "BAT",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "RAT_AC",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S12": {
+      "name": "Battery only - no AC power",
+      "result": "PASS",
+      "worst_element": "DCBAT",
+      "worst_band": "continuous",
+      "smallest_margin_pct": 37.339286,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "BAT",
+        "DCBAT",
+        "DCESS",
+        "DTCEB"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": false,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": null,
+          "current": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2000.0,
+            "short_term": 1560.0,
+            "continuous": 1340.0
+          },
+          "current": {
+            "transient": 71.428571,
+            "short_term": 55.714286,
+            "continuous": 47.857143
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 2000.0,
+            "short_term": 1560.0,
+            "continuous": 1340.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S13": {
+      "name": "Dual TRU failure - TRU 1 carries all DC",
+      "result": "FAIL",
+      "worst_element": "TRU1",
+      "worst_band": "transient",
+      "smallest_margin_pct": -15.412698,
+      "overloads": 3,
+      "configuration_errors": 0,
+      "unpowered_essential": 0,
+      "overload_details": [
+        {
+          "element": "TRU1",
+          "band": "transient",
+          "demand_with_margin": 7271.0,
+          "capacity": 6300
+        },
+        {
+          "element": "TRU1",
+          "band": "short_term",
+          "demand_with_margin": 5626.5,
+          "capacity": 5040
+        },
+        {
+          "element": "TRU1",
+          "band": "continuous",
+          "demand_with_margin": 4834.5,
+          "capacity": 4200
+        }
+      ],
+      "unpowered_details": [],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTC12",
+        "DTC1E",
+        "DTCEB",
+        "GEN1",
+        "GEN2",
+        "TRU1"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 56026.470588,
+            "short_term": 41277.647059,
+            "continuous": 36960.588235
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 46000.0,
+            "short_term": 34400.0,
+            "continuous": 31280.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 6610.0,
+            "short_term": 5115.0,
+            "continuous": 4395.0
+          },
+          "input": {
+            "transient": 7776.470588,
+            "short_term": 6017.647059,
+            "continuous": 5170.588235
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": null,
+          "input": null,
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 56026.470588,
+            "short_term": 41277.647059,
+            "continuous": 36960.588235
+          },
+          "current": {
+            "transient": 162.395567,
+            "short_term": 119.645354,
+            "continuous": 107.13214
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 46000.0,
+            "short_term": 34400.0,
+            "continuous": 31280.0
+          },
+          "current": {
+            "transient": 133.333333,
+            "short_term": 99.710145,
+            "continuous": 90.666667
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 6250.0,
+            "short_term": 4260.0,
+            "continuous": 3710.0
+          },
+          "current": {
+            "transient": 18.115942,
+            "short_term": 12.347826,
+            "continuous": 10.753623
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 6610.0,
+            "short_term": 5115.0,
+            "continuous": 4395.0
+          },
+          "current": {
+            "transient": 236.071429,
+            "short_term": 182.678571,
+            "continuous": 156.964286
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 6250.0,
+            "short_term": 4260.0,
+            "continuous": 3710.0
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S14": {
+      "name": "DC BAT crew switch left off",
+      "result": "FAIL",
+      "worst_element": "TRU3",
+      "worst_band": "continuous",
+      "smallest_margin_pct": 56.130952,
+      "overloads": 0,
+      "configuration_errors": 0,
+      "unpowered_essential": 4,
+      "overload_details": [],
+      "unpowered_details": [
+        "L055",
+        "L056",
+        "L057",
+        "L058"
+      ],
+      "paralleled_sources": [],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "BTC1E",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "GEN1",
+        "GEN2",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": {
+            "transient": 53148.850575,
+            "short_term": 39194.279919,
+            "continuous": 35212.582826
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2000.0,
+            "short_term": 1560.0,
+            "continuous": 1340.0
+          },
+          "input": {
+            "transient": 2298.850575,
+            "short_term": 1793.103448,
+            "continuous": 1540.229885
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 53148.850575,
+            "short_term": 39194.279919,
+            "continuous": 35212.582826
+          },
+          "current": {
+            "transient": 154.054639,
+            "short_term": 113.606608,
+            "continuous": 102.065457
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 8548.850575,
+            "short_term": 6053.103448,
+            "continuous": 5250.229885
+          },
+          "current": {
+            "transient": 24.779277,
+            "short_term": 17.545227,
+            "continuous": 15.218058
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2000.0,
+            "short_term": 1560.0,
+            "continuous": 1340.0
+          },
+          "current": {
+            "transient": 71.428571,
+            "short_term": 55.714286,
+            "continuous": 47.857143
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "current": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": {
+            "transient": 8548.850575,
+            "short_term": 6053.103448,
+            "continuous": 5250.229885
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    },
+    "S15": {
+      "name": "AC ESS alternate tie closed with both generators on line",
+      "result": "FAIL",
+      "worst_element": "TRU3",
+      "worst_band": "transient",
+      "smallest_margin_pct": 42.81746,
+      "overloads": 0,
+      "configuration_errors": 1,
+      "unpowered_essential": 0,
+      "overload_details": [],
+      "unpowered_details": [],
+      "paralleled_sources": [
+        "GEN1",
+        "GEN2"
+      ],
+      "checked": [
+        "AC1",
+        "AC2",
+        "ACESS",
+        "APUGEN",
+        "BAT",
+        "DC1",
+        "DC2",
+        "DCBAT",
+        "DCESS",
+        "DTCEB",
+        "TRU1",
+        "TRU2",
+        "TRU3"
+      ],
+      "sources": {
+        "GEN1": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "GEN2": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "APUGEN": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "RAT_AC": {
+          "demand": null,
+          "capacity": {
+            "transient": 15000,
+            "short_term": 12000,
+            "continuous": 10000
+          }
+        },
+        "BAT": {
+          "demand": {
+            "transient": 0.0,
+            "short_term": 0.0,
+            "continuous": 0.0
+          },
+          "capacity": {
+            "transient": 6000,
+            "short_term": 4500,
+            "continuous": 3000
+          }
+        }
+      },
+      "trus": {
+        "TRU1": {
+          "output": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "input": {
+            "transient": 2600.0,
+            "short_term": 2141.176471,
+            "continuous": 1882.352941
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU2": {
+          "output": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "input": {
+            "transient": 2094.117647,
+            "short_term": 1647.058824,
+            "continuous": 1411.764706
+          },
+          "capacity": {
+            "transient": 6300,
+            "short_term": 5040,
+            "continuous": 4200
+          }
+        },
+        "TRU3": {
+          "output": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "input": {
+            "transient": 3011.494253,
+            "short_term": 2178.16092,
+            "continuous": 1833.333333
+          },
+          "capacity": {
+            "transient": 5040,
+            "short_term": 4032,
+            "continuous": 3360
+          }
+        }
+      },
+      "buses": {
+        "AC1": {
+          "energised": true,
+          "own": {
+            "transient": 42000,
+            "short_term": 31000,
+            "continuous": 28080
+          },
+          "demand": {
+            "transient": 44600.0,
+            "short_term": 33141.176471,
+            "continuous": 29962.352941
+          },
+          "current": {
+            "transient": 129.275362,
+            "short_term": 96.061381,
+            "continuous": 86.8474
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "AC2": {
+          "energised": true,
+          "own": {
+            "transient": 46000,
+            "short_term": 34400,
+            "continuous": 31280
+          },
+          "demand": {
+            "transient": 48094.117647,
+            "short_term": 36047.058824,
+            "continuous": 32691.764706
+          },
+          "current": {
+            "transient": 139.40324,
+            "short_term": 104.484228,
+            "continuous": 94.758738
+          },
+          "capacity": {
+            "transient": 150000,
+            "short_term": 125000,
+            "continuous": 100000
+          }
+        },
+        "ACESS": {
+          "energised": true,
+          "own": {
+            "transient": 6250,
+            "short_term": 4260,
+            "continuous": 3710
+          },
+          "demand": {
+            "transient": 9261.494253,
+            "short_term": 6438.16092,
+            "continuous": 5543.333333
+          },
+          "current": {
+            "transient": 26.844911,
+            "short_term": 18.661336,
+            "continuous": 16.067633
+          },
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DC1": {
+          "energised": true,
+          "own": {
+            "transient": 2210,
+            "short_term": 1820,
+            "continuous": 1600
+          },
+          "demand": {
+            "transient": 2210.0,
+            "short_term": 1820.0,
+            "continuous": 1600.0
+          },
+          "current": {
+            "transient": 78.928571,
+            "short_term": 65.0,
+            "continuous": 57.142857
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DC2": {
+          "energised": true,
+          "own": {
+            "transient": 1780,
+            "short_term": 1400,
+            "continuous": 1200
+          },
+          "demand": {
+            "transient": 1780.0,
+            "short_term": 1400.0,
+            "continuous": 1200.0
+          },
+          "current": {
+            "transient": 63.571429,
+            "short_term": 50.0,
+            "continuous": 42.857143
+          },
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DCESS": {
+          "energised": true,
+          "own": {
+            "transient": 2000,
+            "short_term": 1560,
+            "continuous": 1340
+          },
+          "demand": {
+            "transient": 2620.0,
+            "short_term": 1895.0,
+            "continuous": 1595.0
+          },
+          "current": {
+            "transient": 93.571429,
+            "short_term": 67.678571,
+            "continuous": 56.964286
+          },
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DCBAT": {
+          "energised": true,
+          "own": {
+            "transient": 620,
+            "short_term": 335,
+            "continuous": 255
+          },
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "current": {
+            "transient": 22.142857,
+            "short_term": 11.964286,
+            "continuous": 9.107143
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      },
+      "ties": {
+        "BTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 135000,
+            "short_term": 112500,
+            "continuous": 90000
+          }
+        },
+        "BTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "BTC2E": {
+          "demand": null,
+          "capacity": {
+            "transient": 30000,
+            "short_term": 25000,
+            "continuous": 20000
+          }
+        },
+        "DTC12": {
+          "demand": null,
+          "capacity": {
+            "transient": 8400,
+            "short_term": 7000,
+            "continuous": 5600
+          }
+        },
+        "DTC1E": {
+          "demand": null,
+          "capacity": {
+            "transient": 7000,
+            "short_term": 5600,
+            "continuous": 4200
+          }
+        },
+        "DTCEB": {
+          "demand": {
+            "transient": 620.0,
+            "short_term": 335.0,
+            "continuous": 255.0
+          },
+          "capacity": {
+            "transient": 5600,
+            "short_term": 4200,
+            "continuous": 2800
+          }
+        }
+      }
+    }
+  }
+}

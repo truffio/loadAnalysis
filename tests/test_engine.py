@@ -50,12 +50,16 @@ SAMPLE = ROOT / "definitions" / "generic_twin.json"
 def configurations():
     """(document, states) over several scenarios, for the cases written against FX-SAMPLE.
 
-    FX-SAMPLE does not exist until E3. These stand-ins exercise the same assertions today, and the
-    sample joins them as soon as it is delivered.
+    The sample is read unconditionally, so these cases fail rather than shrink if it goes missing.
+    The other fixtures add configurations the sample does not have.
     """
-    docs = [fx("FX-BATCH"), fx("FX-ALLKINDS"), fx("FX-BAT"), fx("FX-CREW")]
-    if SAMPLE.exists():
-        docs.append(json.loads(SAMPLE.read_text("utf-8")))
+    docs = [
+        fx("FX-BATCH"),
+        fx("FX-ALLKINDS"),
+        fx("FX-BAT"),
+        fx("FX-CREW"),
+        json.loads(SAMPLE.read_text("utf-8")),
+    ]
     for doc in docs:
         yield doc, {}
         for s in doc["scenarios"]:
