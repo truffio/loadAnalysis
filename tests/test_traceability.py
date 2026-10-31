@@ -25,17 +25,17 @@ TEST_CASES = ROOT / "docs" / "test-cases.md"
 
 
 def requirement_ids():
-    return set(re.findall(r"^### (L\d-[A-Z]+-\d+)\s*$", REQUIREMENTS.read_text("utf-8"), re.M))
+    return set(re.findall(r"^### (L\d-[A-Z]+-\d+)\s*$", REQUIREMENTS.read_text("utf-8"), re.MULTILINE))
 
 
 def matrix():
     """Case id to the requirement ids it verifies, from the verification matrix."""
-    rows = re.findall(r"^\| (TC-[A-Z]+-\d+) \| ([^|]*) \|", TEST_CASES.read_text("utf-8"), re.M)
+    rows = re.findall(r"^\| (TC-[A-Z]+-\d+) \| ([^|]*) \|", TEST_CASES.read_text("utf-8"), re.MULTILINE)
     return {case: re.findall(r"L\d-[A-Z]+-\d+", verifies) for case, verifies in rows}
 
 
 def case_headings():
-    return set(re.findall(r"^#### (TC-[A-Z]+-\d+) ", TEST_CASES.read_text("utf-8"), re.M))
+    return set(re.findall(r"^#### (TC-[A-Z]+-\d+) ", TEST_CASES.read_text("utf-8"), re.MULTILINE))
 
 
 def _is_mark(node, name):
@@ -64,7 +64,7 @@ def all_test_functions():
         tree = ast.parse(path.read_text("utf-8"))
         module_meta = _is_meta_module(tree)
         for node in ast.walk(tree):
-            if not isinstance(node, ast.FunctionDef) or not node.name.startswith("test_"):
+            if not isinstance(node, ast.FunctionDef) or not node.name.startswith("test"):
                 continue
             cases, meta = [], module_meta
             for decorator in node.decorator_list:
@@ -75,7 +75,7 @@ def all_test_functions():
     return found
 
 
-def tested_cases():
+def cases_with_tests():
     return {case for _, _, cases, _ in all_test_functions() for case in cases}
 
 
@@ -86,8 +86,9 @@ def collected_not_meta():
         cwd=ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
-    pairs = re.findall(r"^tests[/\\](?:.*[/\\])?(test_\w+\.py)::(\w+)", out.stdout, re.M)
+    pairs = re.findall(r"^tests[/\\](?:.*[/\\])?(test_\w+\.py)::(\w+)", out.stdout, re.MULTILINE)
     return set(pairs)
 
 
@@ -111,6 +112,7 @@ def not_meta_run():
         cwd=ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
 
 
@@ -141,13 +143,13 @@ def test_every_test_function_carries_a_mark():
 
 @pytest.mark.tc("TC-VAL-007")
 def test_every_mark_names_a_real_case():
-    assert sorted(tested_cases() - set(matrix())) == []
+    assert sorted(cases_with_tests() - set(matrix())) == []
 
 
 @pytest.mark.tc("TC-VAL-007")
 def test_every_implemented_case_has_a_test():
     wanted = {c for c in matrix() if c.split("-")[1] in IMPLEMENTED_PREFIXES}
-    assert sorted(wanted - tested_cases()) == []
+    assert sorted(wanted - cases_with_tests()) == []
 
 
 @pytest.mark.tc("TC-VAL-007")

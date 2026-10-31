@@ -54,6 +54,29 @@ def test_malformed_documents(index):
     assert all(path.startswith("$") for path in rooted(result))
 
 
+def _leaf_paths(node, path="$"):
+    """Every path under a document, at any depth."""
+    items = enumerate(node) if isinstance(node, list) else node.items()
+    for key, value in items:
+        child = f"{path}[{key}]" if isinstance(key, int) else f"{path}.{key}"
+        yield child
+        if isinstance(value, (dict, list)):
+            yield from _leaf_paths(value, child)
+
+
+@pytest.mark.tc("TC-VAL-001")
+def test_no_value_anywhere_makes_the_validator_raise():
+    doc = fx("FX-ALLKINDS")
+    doc["scenarios"] = [scenario("S", {"G1": "failed"})]
+    junk = [None, True, 7, -1.5, math.nan, "x", [], [None], [[]], {}, {"id": []}]
+    for path in _leaf_paths(doc):
+        for value in junk:
+            trial = fx("FX-ALLKINDS")
+            trial["scenarios"] = [scenario("S", {"G1": "failed"})]
+            validate(setp(trial, path, value))
+            validate(delp(trial, path))
+
+
 @pytest.mark.tc("TC-VAL-002")
 def test_five_seeded_faults_in_one_call():
     doc = fx("FX-FIVE")

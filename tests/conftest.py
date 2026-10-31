@@ -559,7 +559,7 @@ def fx_allpass():
 def fx_batch12():
     doc = fx_batch()
     cycle = doc["scenarios"]
-    ids = "Z01 A02 M03 B04 Y05 C06 X07 D08 W09 E10 V11 F12".split()
+    ids = ["Z01", "A02", "M03", "B04", "Y05", "C06", "X07", "D08", "W09", "E10", "V11", "F12"]
     doc["scenarios"] = [
         {**cycle[i % len(cycle)], "id": id_} for i, id_ in enumerate(ids)
     ]
