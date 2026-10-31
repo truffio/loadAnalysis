@@ -1,5 +1,71 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>ELA</title></head>
-<body><p>ELA front end placeholder, replaced by E7.</p></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ELA - Electrical Load Analysis</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="toolbar">
+      <h1 class="brand">ELA</h1>
+      <label class="field">
+        <span>Definition</span>
+        <select id="definition-select"></select>
+      </label>
+      <label class="button" for="definition-upload">Upload definition</label>
+      <input type="file" id="definition-upload" accept=".json,application/json">
+      <span class="divider" aria-hidden="true"></span>
+      <label class="field">
+        <span>Band</span>
+        <select id="band-select"></select>
+      </label>
+      <label class="field">
+        <span>Scenario</span>
+        <select id="scenario-select"></select>
+      </label>
+      <button type="button" id="reset">Reset</button>
+    </header>
+
+    <main class="workspace" id="workspace" data-view="schematic">
+      <section class="drawing" id="view-schematic" aria-label="Schematic">
+        <svg id="schematic" xmlns="http://www.w3.org/2000/svg">
+          <g id="viewport">
+            <g class="wires"></g>
+            <g class="elements"></g>
+            <g class="names"></g>
+            <g class="labels"></g>
+          </g>
+        </svg>
+        <p id="empty-hint" class="hint">Choose a definition, or upload one, to draw its schematic.</p>
+      </section>
+
+      <aside class="sidebar" id="sidebar" aria-label="Status">
+        <section class="panel">
+          <h2>Configuration</h2>
+          <p id="status-verdict" class="verdict" aria-live="polite"></p>
+          <ul id="status-list" class="status-list"></ul>
+        </section>
+        <div id="message" class="message" role="status"></div>
+        <div id="warnings" class="warnings" hidden></div>
+        <section class="panel legend" aria-label="Key">
+          <h2>Key</h2>
+          <ul>
+            <li><span class="swatch energised"></span>Energised</li>
+            <li><span class="swatch deenergised"></span>De-energised</li>
+            <li><span class="swatch overloaded"></span>Overloaded in any band</li>
+            <li><span class="swatch failed"><i>&#x2715;</i></span>Failed source or TRU</li>
+            <li><svg viewBox="0 0 28 14" aria-hidden="true"><path d="M0 7H28"/><circle cx="8" cy="7" r="2.6"/><circle cx="20" cy="7" r="2.6"/></svg>Contactor closed</li>
+            <li><svg viewBox="0 0 28 14" aria-hidden="true"><path d="M0 7H8M28 7H20M20 7L10 1"/><circle cx="8" cy="7" r="2.6"/><circle cx="20" cy="7" r="2.6"/></svg>Contactor open</li>
+          </ul>
+          <p class="note">Click a source, TRU, contactor or crew switch to change it. Drag to pan, scroll to zoom.</p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div id="tooltip" role="tooltip" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
 </html>

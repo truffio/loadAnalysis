@@ -16,15 +16,12 @@ import pytest
 pytestmark = pytest.mark.meta
 
 # Test case prefixes built so far. The next epics append to this list.
-IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG", "SMP", "BAT", "CLI", "LAY", "API"]
+IMPLEMENTED_PREFIXES = ["MOD", "VAL", "ENG", "SMP", "BAT", "CLI", "LAY", "API", "WIN"]
 
 # Cases of an implemented prefix that cannot run yet, with what they wait for. An entry must go as
 # soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
-# run on the sample through `configurations()` in tests/test_engine.py. TC-LAY-017 has a browser
-# half of its own for E7 to add.
-DEFERRED_CASES = {
-    "TC-LAY-018": "needs H-PAGE, which is the API (E6) and the front end (E7)",
-}
+# run on the sample through `configurations()` in tests/test_engine.py.
+DEFERRED_CASES = {}
 
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
@@ -87,10 +84,10 @@ def cases_with_tests():
     return {case for _, _, cases, _ in all_test_functions() for case in cases}
 
 
-def collected_not_meta():
-    """(file name, function name) of each test `pytest -m "not meta"` collects."""
+def collected_marked(expression):
+    """(file name, function name) of each test `pytest -m <expression>` collects."""
     out = subprocess.run(
-        [sys.executable, "-m", "pytest", "tests", "--collect-only", "-q", "-m", "not meta"],
+        [sys.executable, "-m", "pytest", "tests", "--collect-only", "-q", "-m", expression],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -100,9 +97,12 @@ def collected_not_meta():
     return set(pairs)
 
 
-def covered_requirements():
-    """Requirement ids with at least one collected, non-meta test through a case."""
-    collected = collected_not_meta()
+def collected_not_meta():
+    return collected_marked("not meta")
+
+
+def covered_by(collected):
+    """Requirement ids with at least one test in `collected` through a case."""
     verifies = matrix()
     covered = set()
     for file, name, cases, _ in all_test_functions():
@@ -110,6 +110,11 @@ def covered_requirements():
             for case in cases:
                 covered.update(verifies.get(case, ()))
     return covered
+
+
+def covered_requirements():
+    """Requirement ids with at least one collected, non-meta test through a case."""
+    return covered_by(collected_not_meta())
 
 
 @pytest.fixture(scope="module")
