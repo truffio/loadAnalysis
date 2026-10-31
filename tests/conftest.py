@@ -1027,12 +1027,29 @@ class HPage:
 
     # --- Navigation ---
 
+    def _retry_navigation(self, navigate):
+        """Retry a load that fails on a local socket shortage.
+
+        Windows reports net::ERR_NO_BUFFER_SPACE when it runs short of socket buffers under load.
+        That is the test machine's limit, not page behaviour, so only this error is retried.
+        """
+        from playwright.sync_api import Error as PlaywrightError
+
+        for attempt in range(5):
+            try:
+                navigate()
+                return
+            except PlaywrightError as error:
+                if "ERR_NO_BUFFER_SPACE" not in str(error) or attempt == 4:
+                    raise
+                time.sleep(0.5 * (attempt + 1))
+
     def goto(self):
-        self.page.goto(self.server.url + "/")
+        self._retry_navigation(lambda: self.page.goto(self.server.url + "/"))
         self.page.locator("#definition-select option").first.wait_for(state="attached")
 
     def reload(self):
-        self.page.reload()
+        self._retry_navigation(self.page.reload)
         self.page.locator("#definition-select option").first.wait_for(state="attached")
 
     def open(self, def_id):
