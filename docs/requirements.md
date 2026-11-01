@@ -739,12 +739,13 @@ Status: Draft
 ID: L1-ELA-023
 Level: L1
 Type: Functional
-Statement: The tool shall issue a warning naming the contactors left out of the flow calculation
-  when an island contains a closed loop.
+Statement: The tool shall issue a warning naming the contactors left out of the flow calculation,
+  and each rated element checked against its island's total demand, when an island contains a closed
+  loop.
 Rationale: The split of power around a loop is indeterminate without impedances, so the assumption
   made has to stay visible.
 Parent(s): L0-ELA-003
-Source: DD-004
+Source: DD-004; DD-026
 Allocated to: —
 Verification: Test; success criteria: closing a ring of three bus ties gives a warning naming the
   one contactor left out.
@@ -1635,6 +1636,23 @@ Verification: Test; success criteria: a definition with `duration_s` 5 on `short
 Status: Draft
 ```
 
+### L2-MOD-034
+
+```req
+ID: L2-MOD-034
+Level: L2
+Type: Functional
+Statement: The schema shall reject any numeric value above 1e12 in magnitude.
+Rationale: Extreme values crashed analysis and the page.
+Parent(s): L1-ELA-006
+Source: DD-028
+Allocated to: C-MODEL
+Verification: Test; success criteria: a band value, voltage, safety margin, `duration_s`, `phases`
+  or `engine` of exactly 1e12 is accepted, and one just above it, or an integer of 400 digits, is an
+  error at its path.
+Status: Draft
+```
+
 <!-- END SECTION MOD-TOPLEVEL -->
 
 <!-- BEGIN SECTION MOD-SOURCES -->
@@ -2081,8 +2099,8 @@ ID: L2-VAL-001
 Level: L2
 Type: Functional
 Statement: The validator shall return lists of errors and warnings for any parsed JSON document,
-  raising no exception for invalid content. A file that does not parse as JSON is reported by its
-  caller as one error at path `$`.
+  raising no exception for invalid content. A file that does not parse as JSON is reported by
+  `parse_json` as one error at path `$`.
 Rationale: Callers present problems to the engineer, so an exception would lose all but the first.
 Parent(s): L1-ELA-006
 Source: docs/spec.md §5.2; docs/spec.md §7.1
@@ -2194,6 +2212,40 @@ Verification: Test; success criteria: `ela.validate.validate` on a valid documen
 Status: Draft
 ```
 
+### L2-VAL-034
+
+```req
+ID: L2-VAL-034
+Level: L2
+Type: Functional
+Statement: The validator module shall offer one loader, `parse_json(raw)`, that the CLI and the API
+  use for every definition file and request body, and that reports each repeated JSON key as an
+  error at its JSON path.
+Rationale: The last repeated key silently won, which could produce a false PASS.
+Parent(s): L1-ELA-007
+Source: DD-028
+Allocated to: C-VALID
+Verification: Test; success criteria: two `safety_margin` keys give one error at
+  `$.settings.safety_margin` and no document, and a repeat inside an overwritten value is found too.
+Status: Draft
+```
+
+### L2-VAL-035
+
+```req
+ID: L2-VAL-035
+Level: L2
+Type: Functional
+Statement: The loader shall accept UTF-8 text with or without a byte order mark.
+Rationale: The web accepted a byte order mark and the CLI did not.
+Parent(s): L1-ELA-001
+Source: DD-028
+Allocated to: C-VALID
+Verification: Test; success criteria: the same document with and without a byte order mark parses to
+  equal values, and bad UTF-8 or bad JSON gives one error at `$`.
+Status: Draft
+```
+
 <!-- END SECTION VAL-REPORTING -->
 
 <!-- BEGIN SECTION VAL-STRUCTURE -->
@@ -2288,6 +2340,23 @@ Verification: Test; success criteria: removing `capacity` from a source and from
 Status: Draft
 ```
 
+### L2-VAL-036
+
+```req
+ID: L2-VAL-036
+Level: L2
+Type: Functional
+Statement: The validator shall report an error for each element id equal to `<bus>_switch` for a
+  crew-switched bus.
+Rationale: A clash removed the switch from the drawing and sent clicks to the wrong component.
+Parent(s): L1-ELA-006
+Source: DD-027
+Allocated to: C-VALID
+Verification: Test; success criteria: such an id on a source, bus, TRU, contactor or load is an
+  error at that `id`, and the same id is accepted when the bus has no crew switch.
+Status: Draft
+```
+
 <!-- END SECTION VAL-STRUCTURE -->
 
 <!-- BEGIN SECTION VAL-VALUES -->
@@ -2348,11 +2417,12 @@ ID: L2-VAL-015
 Level: L2
 Type: Functional
 Statement: The validator shall report an error for each value outside its range, the ranges being
-  `voltage > 0`, `phases ≥ 1` and `safety_margin ≥ 0`.
+  `voltage > 0`, `phases ≥ 1`, `safety_margin ≥ 0` and, for every number, a magnitude of at most
+  1e12.
 Rationale: These values are divisors or would weaken the criterion. The ranges are recorded as an
   assumption.
 Parent(s): L1-ELA-006
-Source: docs/spec.md §3.7
+Source: docs/spec.md §3.7; DD-028
 Allocated to: C-VALID
 Verification: Test; success criteria: `voltage` 0, `phases` 0 and `safety_margin` −0.1 each give one
   error, and `safety_margin` 0 gives none.
@@ -2676,6 +2746,23 @@ Verification: Test; success criteria: a definition with no essential load gives 
 Status: Draft
 ```
 
+### L2-VAL-037
+
+```req
+ID: L2-VAL-037
+Level: L2
+Type: Functional
+Statement: The validator shall report a warning at path `$.scenarios` when a definition has no
+  scenarios.
+Rationale: A batch run of such a file exits with 0 having checked nothing.
+Parent(s): L1-ELA-009
+Source: DD-028
+Allocated to: C-VALID
+Verification: Test; success criteria: FX-SINGLE gives one warning at `$.scenarios`, and a definition
+  with a scenario gives none.
+Status: Draft
+```
+
 <!-- END SECTION VAL-WARNINGS -->
 
 ## C-ENGINE: analysis engine
@@ -2967,12 +3054,13 @@ Level: L2
 Type: Functional
 Statement: The engine shall compute bus demand as throughput, equal to own-load power plus TRU input
   power drawn from the bus plus power leaving the bus through closed bus ties and through source
-  contactors to other buses, excluding TRU input contactors.
+  contactors to other buses, excluding TRU input contactors. L2-ENG-070 replaces this figure for a
+  rated bus on a closed loop.
 Rationale: Departs from docs/spec.md §3.4 step 1 by ruling. A busbar's rating applies to what it
   carries. TRU input power is counted once, though a TRU input contactor is also a closed contactor
   leaving the bus.
 Parent(s): L1-ELA-018
-Source: docs/spec.md §3.4; DD-002
+Source: docs/spec.md §3.4; DD-002; DD-026
 Allocated to: C-ENGINE
 Verification: Test; success criteria: a bus with 1000 W own load, a TRU drawing 1000 W input and a
   tie feeding 500 W onward has demand 2500 W.
@@ -3096,9 +3184,10 @@ ID: L2-ENG-024
 Level: L2
 Type: Functional
 Statement: The engine shall assign zero flow to each contactor left out of the spanning tree.
+  L2-ENG-070 replaces this figure for a rated contactor.
 Rationale: This is the stated assumption for looped islands.
 Parent(s): L1-ELA-023
-Source: DD-004
+Source: DD-004; DD-026
 Allocated to: C-ENGINE
 Verification: Test; success criteria: the contactor left out of a three-tie ring reports demand 0 W
   in all three bands.
@@ -3112,14 +3201,15 @@ ID: L2-ENG-025
 Level: L2
 Type: Functional
 Statement: The engine shall issue a `meshed_island` warning naming each contactor left out of a
-  spanning tree, on energised, non-paralleled islands only.
-Rationale: The warning keeps the assumption visible.
+  spanning tree on an energised island, paralleled or not.
+Rationale: The warning keeps the assumption visible. DD-004 names no exception, so a paralleled
+  island warns too, although no flow is attributed there.
 Parent(s): L1-ELA-023
 Source: DD-004
 Allocated to: C-ENGINE
 Verification: Test; success criteria: a three-tie ring gives one `meshed_island` warning naming the
-  omitted contactor, an unlooped island, a de-energised ring and a paralleled ring give no such
-  warning, and the verdict is unaffected by the warning.
+  omitted contactor, a paralleled ring gives the same warning, an unlooped island and a de-energised
+  ring give no such warning, and the verdict is unaffected by the warning.
 Status: Draft
 ```
 
@@ -3131,12 +3221,13 @@ Level: L2
 Type: Functional
 Statement: The engine shall set a contactor's demand to the power crossing it found by node balance,
   which is the source output for a source's only contactor, TRU input power for a TRU input, TRU
-  output power for a TRU output, and cut-set flow for a tie.
+  output power for a TRU output, and cut-set flow for a tie. L2-ENG-070 replaces this figure for a
+  rated contactor on a closed loop.
 Rationale: Needed to check rated contactors. A source with several contactors splits its output
   across them. DD-005 takes precedence on a paralleled island, where no demand is attributed to
   contactors.
 Parent(s): L1-ELA-019
-Source: DD-013
+Source: DD-013; DD-026
 Allocated to: C-ENGINE
 Verification: Test; success criteria: on a generator feeding a bus with a TRU of output 850 W and
   efficiency 0.85, the TRU output contactor carries 850 W, the TRU input contactor 1000 W and the
@@ -3158,6 +3249,77 @@ Source: docs/spec.md §3.3; DD-014
 Allocated to: C-ENGINE
 Verification: Test; success criteria: such a TRU reports energised with output and input power 0 W,
   and its output bus gets no feed from it.
+Status: Draft
+```
+
+### L2-ENG-070
+
+```req
+ID: L2-ENG-070
+Level: L2
+Type: Functional
+Statement: The engine shall report as the demand of a rated bus or contactor on a closed loop of an
+  energised, non-paralleled island that island's total demand, which is the own-load power of its
+  buses plus the TRU input power drawn from them, per band, and shall check it against that figure.
+Rationale: Under DD-004 alone, the verdict of an identical network changed with bus ids. The total
+  is an upper bound that does not depend on ids, so the result errs safe.
+Parent(s): L1-ELA-024
+Source: DD-026
+Allocated to: C-ENGINE
+Verification: Test; success criteria: a generator feeding a ring of four buses with 2000 W on the
+  bus opposite and one of the other two buses capped at 1000 W, margin 0, fails on that bus with
+  demand 2000 W whichever way round the two ids are given.
+Status: Draft
+```
+
+### L2-ENG-071
+
+```req
+ID: L2-ENG-071
+Level: L2
+Type: Functional
+Statement: The engine shall treat a contactor as on a closed loop if removing it leaves its ends
+  connected, and a bus as on a closed loop if such a contactor joins it.
+Rationale: This fixes which elements L2-ENG-070 reaches. A failed source or an open contactor is no
+  path, so it makes no loop.
+Parent(s): L1-ELA-024
+Source: DD-026; DD-012
+Allocated to: C-ENGINE
+Verification: Test; success criteria: both of two parallel ties are on a loop, a rated tie and bus
+  hanging off a ring are not, and a ring broken by an open contactor has no loop.
+Status: Draft
+```
+
+### L2-ENG-072
+
+```req
+ID: L2-ENG-072
+Level: L2
+Type: Functional
+Statement: The engine shall keep the spanning-tree flow of DD-004 as the demand of each unrated
+  element on a closed loop.
+Rationale: An unrated element takes no check, so its assumed flow changes no verdict.
+Parent(s): L1-ELA-019
+Source: DD-026; DD-004
+Allocated to: C-ENGINE
+Verification: Test; success criteria: on FX-RING with only AC1 rated, T12 carries 200 W, T13 300 W,
+  T23 0 W and AC2 200 W.
+Status: Draft
+```
+
+### L2-ENG-073
+
+```req
+ID: L2-ENG-073
+Level: L2
+Type: Functional
+Statement: The engine shall name each element that L2-ENG-070 reaches in a `meshed_island` warning.
+Rationale: The reported demand of that element is an upper bound, and the reader has to know that.
+Parent(s): L1-ELA-023
+Source: DD-026
+Allocated to: C-ENGINE
+Verification: Test; success criteria: FX-RING with AC2, T12 and T23 rated gives warnings for those
+  three, and no other, with one warning each.
 Status: Draft
 ```
 
@@ -3490,11 +3652,12 @@ ID: L2-ENG-046
 Level: L2
 Type: Functional
 Statement: The engine shall use as demand in a capacity check the source demand for a source, the
-  output power for a TRU, the throughput for a bus and the power crossing it for a contactor.
+  output power for a TRU, the throughput for a bus and the power crossing it for a contactor. On a
+  closed loop L2-ENG-070 sets the demand of a rated bus or contactor.
 Rationale: TRU capacity is an output capacity under docs/spec.md §4.7, so input power is not
   compared with it.
 Parent(s): L1-ELA-024
-Source: docs/spec.md §3.6; docs/spec.md §4.7; DD-002; DD-013
+Source: docs/spec.md §3.6; docs/spec.md §4.7; DD-002; DD-013; DD-026
 Allocated to: C-ENGINE
 Verification: Test; success criteria: a TRU of output 850 W, efficiency 0.85 and capacity 900 W with
   margin 0 is not overloaded, even though its input is 1000 W.
@@ -3740,15 +3903,52 @@ Level: L2
 Type: Interface
 Statement: The engine shall expose each element record as `el[id]` with `state`, `energised` and,
   per band, `demand`, `with_margin`, `capacity`, `margin_w` and `margin_pct`, a bus adding `own`,
-  `voltage` and `current`, a source or TRU adding `load_pct`, and a TRU adding `input` and `output`.
-  On a bus with no crew switch, `state` is null.
+  `voltage`, `current` and `fed_by`, a source or TRU adding `load_pct`, and a TRU adding `input` and
+  `output`. On a bus with no crew switch, `state` is null.
 Rationale: DD-024 makes these names binding so that tests can be written before the code.
 Parent(s): L1-ELA-046
-Source: DD-024
+Source: DD-024; DD-030
 Allocated to: C-ENGINE
 Verification: Test; success criteria: on a definition with one source, bus, TRU and contactor, each
   record holds exactly the named attributes for its kind, and `state` is null on a bus with no crew
   switch.
+Status: Draft
+```
+
+### L2-ENG-074
+
+```req
+ID: L2-ENG-074
+Level: L2
+Type: Functional
+Statement: The engine shall report as `fed_by` on each bus record a sorted list of the ids of the
+  sources and TRUs feeding its island, empty on a de-energised bus, where a battery on an island
+  that a TRU or DC emergency generator output is feeding is not feeding it.
+Rationale: A live DC bus below a dead TRU is correctly fed by the battery through a tie, and the
+  result has to say so. A battery that L2-ENG-035 gives zero demand supplies nothing.
+Parent(s): L1-ELA-013
+Source: DD-030; DD-015
+Allocated to: C-ENGINE
+Verification: Test; success criteria: the sample with all five AC source contactors open reports
+  `fed_by` ["BAT"] on DC ESS with every TRU de-energised, and with `BATC` open as well every DC bus
+  is dead with `fed_by` [].
+Status: Draft
+```
+
+### L2-ENG-075
+
+```req
+ID: L2-ENG-075
+Level: L2
+Type: Functional
+Statement: The engine shall return only finite figures for any valid definition.
+Rationale: A tiny capacity, voltage or efficiency overflows a ratio even with L2-MOD-034, and JSON
+  cannot carry an infinity.
+Parent(s): L1-ELA-032
+Source: DD-028
+Allocated to: C-ENGINE
+Verification: Test; success criteria: a demand of 1e12 W with a capacity, voltage or efficiency of
+  1e-300, or a margin of 1e12, gives a verdict and serialises with no infinity or NaN.
 Status: Draft
 ```
 
@@ -4572,6 +4772,39 @@ Verification: Test; success criteria: a scenario with nothing checked gives empt
 Status: Draft
 ```
 
+### L2-BAT-011
+
+```req
+ID: L2-BAT-011
+Level: L2
+Type: Functional
+Statement: The batch runner shall prefix with `'` each text cell of the CSV export that starts with
+  `=`, `+`, `-` or `@`, leaving numeric cells unchanged.
+Rationale: Definition text is untrusted and CSV opens in spreadsheets.
+Parent(s): L1-ELA-058
+Source: DD-034
+Allocated to: C-BATCH
+Verification: Test; success criteria: a scenario id, scenario name and element id starting with each
+  of the four characters gain the prefix, the margin `-46.67` does not, and the JSON export keeps
+  the text unchanged.
+Status: Draft
+```
+
+### L2-BAT-012
+
+```req
+ID: L2-BAT-012
+Level: L2
+Type: Functional
+Statement: The batch runner shall format any finite margin in the CSV export without error.
+Rationale: Rounding at the default decimal precision raised an error on a very large margin.
+Parent(s): L1-ELA-058
+Source: DD-028
+Allocated to: C-BATCH
+Verification: Test; success criteria: a margin of -1e282 % gives a cell of 283 digits and a sign.
+Status: Draft
+```
+
 <!-- END SECTION BAT-EXPORT -->
 
 ## C-CLI: command line
@@ -4723,10 +4956,10 @@ ID: L2-CLI-009
 Level: L2
 Type: Interface
 Statement: The CLI shall exit with code 2 for an invalid definition, a file that does not parse as
-  JSON, or bad usage.
+  JSON, a repeated JSON key, or bad usage.
 Rationale: This separates invalid input from failed analysis.
 Parent(s): L1-ELA-059
-Source: DD-018
+Source: DD-018; DD-028
 Allocated to: C-CLI
 Verification: Test; success criteria: an invalid definition, a file holding `{not json`, a path that
   does not exist, a missing argument and an unknown option each give exit code 2 with no traceback.
@@ -4799,6 +5032,23 @@ Verification: Test; success criteria: both files exist, and `uv sync --locked` e
 Status: Draft
 ```
 
+### L2-CLI-014
+
+```req
+ID: L2-CLI-014
+Level: L2
+Type: Functional
+Statement: The CLI shall read its definition file through `parse_json`, accepting a byte order mark
+  and reporting each repeated key on standard error with its path.
+Rationale: The CLI and the web must take the same files.
+Parent(s): L1-ELA-001
+Source: DD-028
+Allocated to: C-CLI
+Verification: Test; success criteria: a file with a byte order mark runs and exits with 0, and a
+  repeated `safety_margin` exits with 2 with its path on standard error.
+Status: Draft
+```
+
 <!-- END SECTION CLI-EXIT -->
 
 ## C-LAYOUT: schematic layout
@@ -4866,7 +5116,8 @@ ID: L2-LAY-004
 Level: L2
 Type: Functional
 Statement: The layout engine shall place each TRU's input contactor above that TRU and its output
-  contactor below it.
+  contactor below it, choosing the row from the bus the contactor joins and not from its `from` and
+  `to` order.
 Rationale: TRUs are drawn with their input and output contactors.
 Parent(s): L1-ELA-040
 Source: docs/spec.md §6.2
@@ -4882,8 +5133,8 @@ Status: Draft
 ID: L2-LAY-005
 Level: L2
 Type: Functional
-Statement: The layout engine shall place DC buses so that vertical position does not decrease in the
-  role order main, essential, then emergency, battery and other.
+Statement: The layout engine shall place DC buses so that main buses sit above essential buses, and
+  essential buses above emergency, battery and other buses.
 Rationale: This is the bus order in the fifth layer of the specification.
 Parent(s): L1-ELA-040
 Source: docs/spec.md §6.2
@@ -5138,6 +5389,46 @@ Verification: Test; success criteria: computing the fit scale of a 50-item fixtu
 Status: Draft
 ```
 
+### L2-LAY-020
+
+```req
+ID: L2-LAY-020
+Level: L2
+Type: Functional
+Statement: The layout engine shall let two connectors run along the same line only if they end on
+  one common item.
+Rationale: Connectors of one node are one electrical point, so a shared line between them misleads
+  nobody. A shared line between others would read as a joint.
+Parent(s): L1-ELA-041
+Source: docs/spec.md §6.2
+Allocated to: C-LAYOUT
+Verification: Test; success criteria: over the fixtures and seeded random topologies, every pair of
+  connectors that shares a line has a common end item.
+Status: Draft
+```
+
+### L2-LAY-021
+
+```req
+ID: L2-LAY-021
+Level: L2
+Type: Usability
+Statement: The layout engine shall reserve for each source and TRU a label box of at least 64 px
+  by three lines of text, for its name, its load and its percentage of capacity, and shall make
+  each bar at least as wide as its bus name needs, up to 96 px.
+Rationale: The front end draws the name in the label box and cuts it to that box, so the box has to
+  hold a name as well as the figures. Without it the names of neighbouring icons touched each
+  other's figures and the leftmost name ran off the drawing.
+Parent(s): L1-ELA-041
+Source: docs/audit.md finding 3
+Allocated to: C-LAYOUT
+Verification: Test; success criteria: on a 50-item fixture and an 8-engine fixture with names such
+  as "Generator 1" and "AC MAIN BUS 1", each source and TRU label box is at least 64 px wide and
+  36 px high, each bar is at least min(96, 5.2 × name length + 10) px wide, and no label box meets
+  another label box, an item or a connector.
+Status: Draft
+```
+
 <!-- END SECTION LAY-ROUTING -->
 
 ## C-API: HTTP API
@@ -5301,9 +5592,11 @@ Level: L2
 Type: Interface
 Statement: The API shall derive the stored name of an upload by taking the last path segment after
   `/` or `\`, dropping the extension and replacing each character outside `[A-Za-z0-9_-]` with `_`,
-  rejecting an empty or Windows-reserved stem with HTTP 422.
+  rejecting with HTTP 422 and a message that says how to rename the file a stem that is empty,
+  Windows-reserved or made only of underscores.
 Rationale: A sanitised name keeps uploads inside the definitions folder. The reserved stems are CON,
-  PRN, AUX, NUL, COM1 to COM9 and LPT1 to LPT9, in any case.
+  PRN, AUX, NUL, COM1 to COM9 and LPT1 to LPT9, in any case. A name such as `é.json` sanitises to
+  `_`, and a second such file then gave a confusing HTTP 409.
 Parent(s): L1-ELA-038
 Source: DD-016
 Allocated to: C-API
@@ -5609,6 +5902,110 @@ Verification: Test; success criteria: the application's routes under `/api` are 
 Status: Draft
 ```
 
+### L2-API-027
+
+```req
+ID: L2-API-027
+Level: L2
+Type: Functional
+Statement: The API shall answer HTTP 400 in the JSON error shape to a request whose `Host` is not
+  `localhost`, `127.0.0.1`, `[::1]` or, for the test client, `testserver`, on every route.
+Rationale: Without this, a website can reach the local server through DNS rebinding.
+Parent(s): L1-ELA-061
+Source: DD-029
+Allocated to: C-API
+Verification: Test; success criteria: `evil.example` and `localhost.evil.example` give 400 on every
+  route, and `[::1]:8000` is served.
+Status: Draft
+```
+
+### L2-API-028
+
+```req
+ID: L2-API-028
+Level: L2
+Type: Functional
+Statement: The API shall answer HTTP 403 in the JSON error shape to a request with a non-local
+  `Origin`, on every route, and shall serve a request with no `Origin` header.
+Rationale: Any website the user visited could otherwise drive the local server.
+Parent(s): L1-ELA-061
+Source: DD-029
+Allocated to: C-API
+Verification: Test; success criteria: `https://evil.example`, `null` and
+  `http://localhost@evil.example` give 403 on every route and store nothing, and a local origin or
+  none is served.
+Status: Draft
+```
+
+### L2-API-029
+
+```req
+ID: L2-API-029
+Level: L2
+Type: Functional
+Statement: The API shall answer HTTP 413 in the JSON error shape to an upload or analyse body over
+  10 MB (10,000,000 bytes), from `Content-Length` before reading the body, and while reading a body
+  that declares no length.
+Rationale: Bodies were unbounded, so one request could fill the memory of the machine.
+Parent(s): L1-ELA-038
+Source: DD-028
+Allocated to: C-API
+Verification: Test; success criteria: a file of exactly 10 MB is stored, one byte more gives 413 and
+  stores nothing, a declared length over the limit reads nothing, and an endless stream is cut off
+  just past the limit.
+Status: Draft
+```
+
+### L2-API-030
+
+```req
+ID: L2-API-030
+Level: L2
+Type: Functional
+Statement: The API shall run analysis off the event loop, in plain `def` routes that run in the
+  threadpool.
+Rationale: A long analysis on the event loop blocks every other request.
+Parent(s): L1-ELA-049
+Source: docs/audit.md finding 7
+Allocated to: C-API
+Verification: Test; success criteria: no analysis, batch, definition or upload route is a coroutine,
+  and `analyse` runs with no event loop in its thread.
+Status: Draft
+```
+
+### L2-API-031
+
+```req
+ID: L2-API-031
+Level: L2
+Type: Functional
+Statement: The API shall answer a filesystem failure with HTTP 500 in the JSON error shape, leaving
+  no partial file.
+Rationale: A plain-text 500 gives the page nothing to show.
+Parent(s): L1-ELA-038
+Source: DD-028
+Allocated to: C-API
+Verification: Test; success criteria: a definitions path that is a file, and a write that fails
+  part-way, each give 500 with `errors`, and the second leaves no file.
+Status: Draft
+```
+
+### L2-API-032
+
+```req
+ID: L2-API-032
+Level: L2
+Type: Functional
+Statement: The API shall read uploads, stored definitions and analyse bodies through `parse_json`.
+Rationale: One loader gives one rule for byte order marks and repeated keys.
+Parent(s): L1-ELA-006
+Source: DD-028
+Allocated to: C-API
+Verification: Test; success criteria: a repeated key gives 422 at its path in all three, and a byte
+  order mark is accepted in all three.
+Status: Draft
+```
+
 <!-- END SECTION API-SERVER -->
 
 ## C-WEBINT: interactive front end
@@ -5748,6 +6145,23 @@ Source: docs/spec.md §6.1
 Allocated to: C-WEBINT
 Verification: Test; success criteria: after failing a generator, choosing the 5 s band and panning,
   switching definition shows default states, Continuous, no selected scenario and the initial view.
+Status: Draft
+```
+
+### L2-WIN-057
+
+```req
+ID: L2-WIN-057
+Level: L2
+Type: Functional
+Statement: The interactive front end shall give the definition and scenario selection controls a
+  placeholder option.
+Rationale: A control that shows no choice must not read as if one were made.
+Parent(s): L1-ELA-037, L1-ELA-051
+Source: DD-033
+Allocated to: C-WEBINT
+Verification: Test; success criteria: before a choice each control shows its placeholder, which is
+  not a definition or scenario.
 Status: Draft
 ```
 
@@ -6047,12 +6461,12 @@ Status: Draft
 ID: L2-WIN-025
 Level: L2
 Type: Functional
-Statement: The interactive front end shall display power, after rounding to the nearest watt, as an
-  integer in W below 1000 W and in kW with two decimals from 1000 W.
+Statement: The interactive front end shall display power in bus and source labels, after rounding to
+  the nearest watt, as an integer in W below 1000 W and in kW with two decimals from 1000 W.
 Rationale: The threshold is in the specification and applies after rounding, so 999.6 W never shows
   as `1000 W`. The number formats are a project choice.
 Parent(s): L1-ELA-031
-Source: docs/spec.md §3.7
+Source: docs/spec.md §3.7; DD-032
 Allocated to: C-WEBINT
 Verification: Test; success criteria: 999 W displays as `999 W`, 1000 W as `1.00 kW`, 12340 W as
   `12.34 kW` and 999.6 W as `1.00 kW`.
@@ -6160,6 +6574,105 @@ Source: docs/spec.md §6.2
 Allocated to: C-WEBINT
 Verification: Test; success criteria: an energised generator at 45000 W of 90000 W capacity shows
   `45.00 kW` and `50 %`, a TRU at 28.33 % shows `28.33 %`, and a failed generator shows neither.
+Status: Draft
+```
+
+### L2-WIN-054
+
+```req
+ID: L2-WIN-054
+Level: L2
+Type: Functional
+Statement: The interactive front end shall show in the tooltip of each energised bus a "Fed by" line
+  listing, by `name`, the sources and TRUs in that bus's `fed_by` ids.
+Rationale: The project owner reported a live DC bus below a dead TRU. The screen did not say what
+  fed it. Names are what people read, so ids are not shown.
+Parent(s): L1-ELA-046
+Source: DD-030
+Allocated to: C-WEBINT
+Verification: Test; success criteria: on the sample with all five AC source contactors open, the
+  tooltip of DC ESS reads Fed by Main Battery, a de-energised bus shows no such line, and an idle
+  battery on an island fed by a TRU is not listed.
+Status: Draft
+```
+
+### L2-WIN-056
+
+```req
+ID: L2-WIN-056
+Level: L2
+Type: Functional
+Statement: The interactive front end shall show power in W, not kW, in the status panel and in
+  tooltips.
+Rationale: Rounding to kW would make a small overload read as equal to its limit.
+Parent(s): L1-ELA-046
+Source: DD-032
+Allocated to: C-WEBINT
+Verification: Test; success criteria: a demand of 1000.4 W with margin against 1100 W shows in W in
+  the tooltip and status panel, while the bus label shows kW.
+Status: Draft
+```
+
+### L2-WIN-058
+
+```req
+ID: L2-WIN-058
+Level: L2
+Type: Functional
+Statement: The interactive front end shall draw the `name` of each bus, source and TRU, cut with an
+  ellipsis to the room reserved for it when it does not fit, never dropped, and shall show the
+  element's full `name` and its `id` in its tooltip.
+Rationale: `name` is the text shown to people, so the drawing shows it and not the id. At about 50
+  items a long name was dropped from the drawing, and the tooltip is where the whole name stays
+  readable.
+Parent(s): L1-ELA-041, L1-ELA-046
+Source: docs/audit.md finding 3
+Allocated to: C-WEBINT
+Verification: Test; success criteria: a generator and a bus whose names are longer than their room
+  are drawn as the start of the name and an ellipsis, inside the label box and the bar the layout
+  gives them, a name that fits is drawn whole, no id is drawn in place of a name, and the tooltip
+  shows the full name and the id.
+Status: Draft
+```
+
+### L2-WIN-059
+
+```req
+ID: L2-WIN-059
+Level: L2
+Type: Usability
+Statement: The interactive front end shall draw a 50-item schematic with realistic element names at
+  1366 × 768 px with no text overlapping other text or a symbol, no text cut off by the edge of the
+  drawing and no name dropped.
+Rationale: An audit found labels dropped or clipped at about 50 items with realistic names, and the
+  example aircraft showed names clipped at the left edge and touching their neighbours.
+Parent(s): L1-ELA-041
+Source: docs/audit.md finding 3
+Allocated to: C-WEBINT
+Verification: Test; success criteria: on a 50-item fixture with names such as "AC MAIN BUS 1" and
+  on an 8-engine fixture, in several configurations and both the Continuous and the Transient band,
+  the measured box of each text in the browser overlaps no other text and no symbol except its own
+  bus bar, lies inside the drawing, and lies inside the box the layout reserved for it.
+Status: Draft
+```
+
+### L2-WIN-060
+
+```req
+ID: L2-WIN-060
+Level: L2
+Type: Functional
+Statement: The interactive front end shall format every number a definition and an analysis can
+  produce, up to 1e12 W with a margin of 1e12 and down to the smallest positive capacity, without
+  error, writing a magnitude of 1e21 or more in exponent form.
+Rationale: DD-028 allows values up to 1e12, so a figure of 1e24 W with margin is legal, and digit
+  arithmetic on such a figure failed and stopped the page drawing.
+Parent(s): L1-ELA-046
+Source: docs/audit.md findings 9 and 10; DD-028
+Allocated to: C-WEBINT
+Verification: Test; success criteria: 1e21 formats as `1.00e+21` with 2 decimals, 1e24 W as
+  `1.00e+24 W`, a value of 1e-300 as zero, and a definition with a load of 1e12 W and a margin of
+  1e12 opens, draws and lists its overloads with no error in the page.
 Status: Draft
 ```
 
@@ -6448,6 +6961,28 @@ Verification: Test; success criteria: closing a loop of ties shows the warning n
 Status: Draft
 ```
 
+### L2-WIN-055
+
+```req
+ID: L2-WIN-055
+Level: L2
+Type: Functional
+Statement: The interactive front end shall change the verdict to "Not analysed" and show the
+  schematic as stale (`data-stale` true on `#schematic`) when an analysis request fails, until a
+  good answer arrives, and shall keep its component states and scenario selection equal to what
+  the stale schematic shows.
+Rationale: A verdict must not outlive the configuration it describes, and a click made on a stale
+  drawing must build on what that drawing shows.
+Parent(s): L1-ELA-052
+Source: DD-031
+Allocated to: C-WEBINT
+Verification: Test; success criteria: with the analyse route failing, a click gives "Not analysed"
+  and a stale schematic that still shows the earlier states, the next click sends the states that
+  drawing shows with the click applied, a scenario chosen while the route fails is not left
+  selected, and the next good answer restores the verdict.
+Status: Draft
+```
+
 <!-- END SECTION WIN-STATUS -->
 
 <!-- BEGIN SECTION WIN-STACK -->
@@ -6683,6 +7218,23 @@ Verification: Test; success criteria: `pytest tests -m "e2e and not meta"`, run 
 Status: Draft
 ```
 
+### L2-WBT-014
+
+```req
+ID: L2-WBT-014
+Level: L2
+Type: Functional
+Statement: The batch front end shall show band labels in the results table, while the CSV and JSON
+  exports keep band keys.
+Rationale: Clearer for the reader, and exports stay machine-readable.
+Parent(s): L1-ELA-055
+Source: DD-033
+Allocated to: C-WEBBAT
+Verification: Test; success criteria: FX-BATCH S5 shows the worst band as Transient in the table and
+  `transient` in both exports.
+Status: Draft
+```
+
 <!-- END SECTION WBT-RUN -->
 
 <!-- BEGIN SECTION WBT-DRILLDOWN -->
@@ -6737,6 +7289,22 @@ Source: docs/spec.md §6.3; DD-022
 Allocated to: C-WEBBAT
 Verification: Test; success criteria: clicking a failing row shows the schematic with that scenario
   selected and with the verdict equal to the row's verdict.
+Status: Draft
+```
+
+### L2-WBT-015
+
+```req
+ID: L2-WBT-015
+Level: L2
+Type: Functional
+Statement: The batch front end shall show power in W, not kW, in the expanded row.
+Rationale: Rounding to kW would make a small overload read as equal to its limit.
+Parent(s): L1-ELA-056
+Source: DD-032
+Allocated to: C-WEBBAT
+Verification: Test; success criteria: the expanded FX-BATCH S5 row shows demand with margin and
+  capacity in W.
 Status: Draft
 ```
 

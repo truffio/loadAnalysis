@@ -2,33 +2,40 @@
 
 `uvicorn ela.api:app` serves the six routes under `/api/definitions` and the `web/` folder at `/`.
 Uvicorn binds to 127.0.0.1 unless told otherwise, which is what the tool wants (DD-016). There is no
-authentication. No route changes or deletes a stored definition: an upload only adds a file.
+authentication, so a request must come from this machine by `Host` and `Origin` (DD-029). No route
+changes or deletes a stored definition: an upload only adds a file.
 
 Every error answer has the shape `{"errors": [{"path", "message"}], "warnings": [...]}`.
 """
 
-import json
+import contextlib
 import mimetypes
 import os
 import re
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlsplit
 
-from fastapi import FastAPI, File, Query, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.datastructures import Headers
 
 from ela.batch import run_batch, to_csv, to_json
 from ela.engine import analyse
 from ela.layout import layout
-from ela.validate import Issue, check_states, validate
+from ela.validate import Issue, check_states, parse_json, validate
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
 DEFAULT_DEFINITIONS_DIR = ROOT / "definitions"
 RESERVED_STEMS = {"CON", "PRN", "AUX", "NUL"}
 RESERVED_STEMS |= {f"COM{n}" for n in range(1, 10)} | {f"LPT{n}" for n in range(1, 10)}
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
+TEST_HOST = "testserver"  # the Host header of FastAPI's TestClient
+MAX_BODY = 10_000_000  # bytes (DD-028)
+MULTIPART_ROOM = 65_536  # for the boundaries and part headers around an uploaded file
 
 # Last batch results per stored file, held in memory only (L2-API-015).
 _last_batch: dict[Path, list[dict]] = {}
@@ -57,12 +64,90 @@ def _stored_files() -> dict[str, Path]:
     return {p.stem: p for p in sorted(folder.glob("*.json")) if p.is_file()}
 
 
-def _parse(raw: bytes) -> tuple[object, Issue | None]:
-    """Parsed JSON of a file or upload, or an error at `$` when it is not JSON."""
-    try:
-        return json.loads(raw.decode("utf-8-sig")), None
-    except (ValueError, RecursionError) as exc:  # bad UTF-8 and bad JSON are both ValueError
-        return None, Issue("$", f"not valid JSON: {exc}")
+def _too_large() -> JSONResponse:
+    return _failure(413, [Issue("$", f"the request is over the limit of {MAX_BODY} bytes")])
+
+
+def _host_name(authority: str) -> str | None:
+    """The lower-case host of `host` or `host:port`, an IPv6 address keeping its brackets."""
+    match = re.fullmatch(r"(\[[0-9A-Fa-f:.]*\]|[^:\[\]]*)(:\d*)?", authority)
+    return match.group(1).lower() if match else None
+
+
+def _is_local_origin(origin: str) -> bool:
+    parts = urlsplit(origin)
+    return parts.scheme in ("http", "https") and _host_name(parts.netloc) in LOCAL_HOSTS
+
+
+class LocalRequestsOnly:
+    """Refuses a request that a website, by itself or through DNS rebinding, could make (DD-029).
+
+    Starlette's TrustedHostMiddleware is not used, because it cuts `[::1]:8000` at the first colon
+    and answers in plain text. A request with no `Origin` header is not from a web page's script.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            headers = Headers(scope=scope)
+            host = headers.get("host", "")
+            if _host_name(host) not in LOCAL_HOSTS | {TEST_HOST}:
+                refusal = _failure(400, [Issue("$", f"host '{host}' is not local")])
+                return await refusal(scope, receive, send)
+            for origin in headers.getlist("origin"):
+                if not _is_local_origin(origin):
+                    refusal = _failure(403, [Issue("$", f"origin '{origin}' is not local")])
+                    return await refusal(scope, receive, send)
+        await self.app(scope, receive, send)
+
+
+class BodyLimit:
+    """Answers 413 from the declared length, or from the bytes as they arrive (DD-028).
+
+    The body is read here, because a route's own read happens inside FastAPI, which turns any
+    failure there into a 400. The cap leaves room for multipart framing, so the routes check the
+    exact limit on what they get.
+    """
+
+    cap = MAX_BODY + MULTIPART_ROOM
+
+    def __init__(self, app):
+        self.app = app
+
+    def _declared_over(self, scope) -> bool:
+        try:
+            return int(Headers(scope=scope).get("content-length", "0")) > self.cap
+        except ValueError:  # not a number, or too long to be one: count what arrives instead
+            return False
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        if self._declared_over(scope):
+            return await _too_large()(scope, receive, send)
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] != "http.request":
+                return None  # the client went away
+            body += message.get("body", b"")
+            if len(body) > self.cap:
+                return await _too_large()(scope, receive, send)
+            if not message.get("more_body", False):
+                break
+
+        delivered = False
+
+        async def replay():
+            nonlocal delivered
+            if delivered:
+                return await receive()
+            delivered = True
+            return {"type": "http.request", "body": bytes(body), "more_body": False}
+
+        await self.app(scope, replay, send)
 
 
 def _load(def_id: str):
@@ -75,9 +160,9 @@ def _load(def_id: str):
         raw = path.read_bytes()
     except OSError as exc:
         return None, None, _failure(404, [Issue("$", f"cannot read '{def_id}': {exc.strerror}")])
-    doc, problem = _parse(raw)
-    if problem:
-        return None, None, _failure(422, [problem])
+    doc, problems = parse_json(raw)
+    if problems:
+        return None, None, _failure(422, problems)
     result = validate(doc)
     if result.errors:
         return None, None, _failure(422, result.errors, result.warnings)
@@ -93,47 +178,65 @@ def upload_stem(filename: str | None) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "_", name)
 
 
+def _text_or_null(value):
+    """Only text is listed from a file that may be invalid. JSON cannot carry an infinity."""
+    return value if isinstance(value, str) else None
+
+
 def list_definitions():
     entries = []
     for stem, path in _stored_files().items():
         meta = {}
         try:
-            doc, _ = _parse(path.read_bytes())
+            doc, _ = parse_json(path.read_bytes())
             if isinstance(doc, dict) and isinstance(doc.get("meta"), dict):
                 meta = doc["meta"]
         except OSError:
             pass
         entries.append(
-            {"id": stem, "aircraft": meta.get("aircraft"), "revision": meta.get("revision")}
+            {
+                "id": stem,
+                "aircraft": _text_or_null(meta.get("aircraft")),
+                "revision": _text_or_null(meta.get("revision")),
+            }
         )
     return {"definitions": entries}
 
 
 def upload_definition(file: Annotated[UploadFile, File()]):
     raw = file.file.read()
-    doc, problem = _parse(raw)
-    if problem:
-        return _failure(422, [problem])
+    if len(raw) > MAX_BODY:
+        return _too_large()
+    doc, problems = parse_json(raw)
+    if problems:
+        return _failure(422, problems)
     result = validate(doc)
     if result.errors:
         return _failure(422, result.errors, result.warnings)
 
     stem = upload_stem(file.filename)
-    if not stem or stem.upper() in RESERVED_STEMS:
-        return _failure(
-            422, [Issue("$", f"'{file.filename}' does not give a usable file name")], result.warnings
+    if not stem.strip("_") or stem.upper() in RESERVED_STEMS:
+        problem = (
+            f"'{file.filename}' does not give a usable file name: rename it with letters A to Z, "
+            "digits, '_' or '-'"
         )
+        return _failure(422, [Issue("$", problem)], result.warnings)
     folder = definitions_dir()
     folder.mkdir(parents=True, exist_ok=True)
     taken = {p.name.lower() for p in folder.iterdir()}
     conflict = _failure(409, [Issue("$", f"a definition named '{stem}' already exists")])
     if f"{stem}.json".lower() in taken:
         return conflict
+    path = folder / f"{stem}.json"
     try:
-        with open(folder / f"{stem}.json", "xb") as f:  # "x" never replaces an existing file
+        with open(path, "xb") as f:  # "x" never replaces an existing file
             f.write(raw)
     except FileExistsError:
         return conflict
+    except OSError:
+        with contextlib.suppress(OSError):
+            path.unlink()  # a partial file would list as a broken definition
+        raise
     return JSONResponse(
         status_code=201, content={"id": stem, "warnings": _issues(result.warnings)}
     )
@@ -151,14 +254,20 @@ def get_definition(id: str):
     }
 
 
-async def analyse_definition(id: str, request: Request):
+async def _request_body(request: Request) -> bytes:
+    return await request.body()
+
+
+def analyse_definition(id: str, raw: Annotated[bytes, Depends(_request_body)]):
+    """A plain `def`, so that FastAPI runs the analysis in its threadpool, off the event loop."""
+    if len(raw) > MAX_BODY:
+        return _too_large()
     _, result, failure = _load(id)
     if failure:
         return failure
-    try:
-        body = json.loads(await request.body())
-    except (ValueError, RecursionError):
-        return _failure(422, [Issue("$", "the body is not valid JSON")], result.warnings)
+    body, problems = parse_json(raw)
+    if problems:
+        return _failure(422, problems, result.warnings)
     if not isinstance(body, dict) or "states" not in body:
         return _failure(
             422, [Issue("$.states", 'the body must be {"states": {...}}')], result.warnings
@@ -200,11 +309,18 @@ def _validation_failure(request: Request, exc: RequestValidationError):
     return _failure(422, errors)
 
 
+def _filesystem_failure(request: Request, exc: OSError):
+    return _failure(500, [Issue("$", f"file system error: {exc.strerror or exc}")])
+
+
 def create_app(web_dir: Path | str | None = None) -> FastAPI:
     """Build the application. `web_dir` is the folder served at `/`, default `web/`."""
     mimetypes.add_type("text/javascript", ".js")  # Windows registries may say text/plain
     app = FastAPI(title="ELA")
     app.add_exception_handler(RequestValidationError, _validation_failure)
+    app.add_exception_handler(OSError, _filesystem_failure)
+    app.add_middleware(BodyLimit)
+    app.add_middleware(LocalRequestsOnly)  # added last, so it runs first
     base = "/api/definitions"
     for path, method, endpoint in (
         (base, "GET", list_definitions),

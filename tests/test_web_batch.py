@@ -3,6 +3,8 @@
 tests/test_web_interactive.py.
 """
 
+import csv
+import io
 import json
 import re
 from pathlib import Path
@@ -26,13 +28,16 @@ COLUMNS = (
     "overloads", "configuration_errors", "unpowered_essential",
 )
 
+# The band labels the table shows in place of the band keys (DD-033), when a definition sets none.
+BAND_LABELS = {"transient": "Transient", "short_term": "5 s", "continuous": "Continuous"}
+
 # The FX-BATCH table in docs/test-cases.md, as displayed.
 FX_BATCH_ROWS = [
-    ["S1", "Normal", "PASS", "G1", "continuous", "56", "0", "0", "0"],
-    ["S2", "G1 lost", "PASS", "G2", "continuous", "12", "0", "0", "0"],
+    ["S1", "Normal", "PASS", "G1", "Continuous", "56", "0", "0", "0"],
+    ["S2", "G1 lost", "PASS", "G2", "Continuous", "12", "0", "0", "0"],
     ["S3", "Paralleled", "FAIL", "—", "—", "—", "0", "1", "0"],
     ["S4", "Dark", "FAIL", "—", "—", "—", "0", "0", "1"],
-    ["S5", 'Overload, tie to "AC3" — T13', "FAIL", "T13", "transient", "-46.67", "3", "0", "0"],
+    ["S5", 'Overload, tie to "AC3" — T13', "FAIL", "T13", "Transient", "-46.67", "3", "0", "0"],
 ]
 
 
@@ -103,7 +108,7 @@ def test_sample_table_equals_the_batch_result(h_page):
         none = "—"
         expected.append([
             r["scenario_id"], r["name"], r["result"], r["worst_element"] or none,
-            r["worst_band"] or none, format_pct(r["smallest_margin_pct"]),
+            BAND_LABELS.get(r["worst_band"], none), format_pct(r["smallest_margin_pct"]),
             str(r["overloads"]), str(r["configuration_errors"]), str(r["unpowered_essential"]),
         ])
     assert table_cells(h) == expected
@@ -289,6 +294,53 @@ def test_export_downloads(h_page, defs_dir):
         assert b"\xe2\x88\x92" not in saved
 
 
+@pytest.mark.tc("TC-WBT-013")
+def test_table_shows_band_labels_and_exports_keep_band_keys(h_page, defs_dir):
+    store(defs_dir, "FX-BATCH")
+    labelled = fx("FX-BATCH")
+    labelled["settings"]["bands"] = {
+        "transient": {"label": "Peak"},
+        "short_term": {"label": "5 s", "duration_s": 5},
+        "continuous": {"label": "Steady"},
+    }
+    put_def(defs_dir, labelled, "fx_labelled.json")
+    h = h_page()
+    h.open("fx_batch")
+    run_batch_on_page(h)
+    # S5 fails in the transient band, S1 is worst in the continuous band.
+    expect(row(h, "S5").locator('td[data-col="worst_band"]')).to_have_text("Transient")
+    expect(row(h, "S1").locator('td[data-col="worst_band"]')).to_have_text("Continuous")
+    downloads = {}
+    for kind, control in (("csv", "#export-csv"), ("json", "#export-json")):
+        with h.page.expect_download() as download:
+            h.page.click(control)
+        downloads[kind] = Path(download.value.path()).read_text("utf-8")
+    rows = {r["scenario_id"]: r for r in csv.DictReader(io.StringIO(downloads["csv"]))}
+    assert rows["S5"]["worst_band"] == "transient"
+    assert rows["S1"]["worst_band"] == "continuous"
+    results = {r["scenario_id"]: r for r in json.loads(downloads["json"])}
+    assert results["S5"]["worst_band"] == "transient"
+    assert results["S1"]["worst_band"] == "continuous"
+    # The labels are the definition's own when it sets them.
+    h.open("fx_labelled")
+    run_batch_on_page(h)
+    expect(row(h, "S5").locator('td[data-col="worst_band"]')).to_have_text("Peak")
+    expect(row(h, "S1").locator('td[data-col="worst_band"]')).to_have_text("Steady")
+
+
+@pytest.mark.tc("TC-WBT-014")
+def test_batch_detail_stays_in_watts(h_page, defs_dir):
+    h = opened(h_page, defs_dir, "FX-BATCH")
+    run_batch_on_page(h)
+    entries = expand(h, "S5").locator("li.overload")
+    assert sorted(entries.all_text_contents()) == [
+        "G1 Continuous 2200 W / 2000 W",
+        "G1 Transient 3300 W / 3000 W",
+        "T13 Transient 2200 W / 1500 W",
+    ]
+    assert "kW" not in "".join(entries.all_text_contents())
+
+
 @pytest.mark.tc("TC-WBT-011")
 def test_export_disabled_before_a_run(h_page, defs_dir):
     store(defs_dir, "FX-BATCH", "FX-SINGLE")
@@ -325,13 +377,14 @@ def test_published_batch_dom_hooks(h_page):
 @pytest.mark.tc("TC-WBT-006")
 @pytest.mark.meta
 def test_batch_front_end_has_browser_tests(e2e_run):
-    from test_traceability import collected_marked, covered_by, requirement_ids
+    from test_traceability import DEFERRED_CASES, collected_marked, covered_by, requirement_ids
 
+    assert DEFERRED_CASES == {}
     section = {
         r for r in requirement_ids()
         if r.startswith("L2-WBT-") and r not in ("L2-WBT-005", "L2-WBT-006")
     }
-    assert len(section) == 11
+    assert len(section) == 13
     covered = covered_by(collected_marked("e2e and not meta"))
     assert sorted(section - covered) == []
     assert e2e_run.returncode == 0, e2e_run.stdout[-3000:]

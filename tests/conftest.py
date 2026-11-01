@@ -286,6 +286,7 @@ def fx_single():
 def fx_single_e():
     doc = fx_single()
     find(doc, "LA")["essential"] = True
+    doc["scenarios"] = [scenario("S1", {})]
     return doc
 
 
@@ -684,6 +685,48 @@ def fx_50():
     )
 
 
+def fx_50n():
+    """FX-50 with the names an operator would give: long ones, ones with digits, ones that fit."""
+    doc = fx_50()
+    for source in doc["sources"]:
+        battery = source["kind"] == "battery"
+        source["name"] = "MAIN BATTERY" if battery else f"ENGINE {source['engine']} GENERATOR"
+    for bus in doc["buses"]:
+        number = bus["id"][2:]
+        bus["name"] = f"AC MAIN BUS {number}" if bus["type"] == "AC" else f"DC ESS BUS {number}"
+    for t in doc["trus"]:
+        t["name"] = f"TRU {t['id'][3:]}"
+    doc["loads"] = [load(f"LA{k}", f"AC{k}", 3000 + 500 * k) for k in range(1, 7)] + [
+        load(f"LD{k}", f"DC{k}", 400 + 100 * k) for k in range(1, 7)
+    ]
+    doc["scenarios"] = [scenario("S1", {"G1": "failed"}, "Engine 1 out")]
+    return doc
+
+
+def fx_8engn():
+    """Eight engine generators on eight AC buses, four TRUs to two DC buses, a battery: the shape
+    of a heavy transport, with names such as "Generator 1" that are wider than their ids."""
+    doc = fx_eng(8)
+    for k in range(1, 9):
+        find(doc, f"G{k}")["name"] = f"Generator {k}"
+        find(doc, f"AC{k}")["name"] = f"AC BUS {k}"
+    doc["sources"].append(bat("BAT"))
+    doc["sources"][-1]["name"] = "Main Battery"
+    doc["buses"] += [dc("DC1"), dc("DC2"), dc("DCBAT", role="battery", crew_switch=True)]
+    doc["buses"][-3]["name"], doc["buses"][-2]["name"] = "DC BUS 1", "DC BUS 2"
+    doc["buses"][-1]["name"] = "DC BAT BUS"
+    for k, (source, target) in enumerate((("AC2", "DC1"), ("AC3", "DC1"), ("AC6", "DC2"), ("AC7", "DC2")), 1):
+        t = tru(f"TRU{k}", source, target, 0.85, 5000)
+        t["name"] = f"TRU {k}"
+        doc["trus"].append(t)
+        doc["contactors"] += tru_contactors(t)
+    doc["contactors"] += [c("BAT", "DCBAT")] + [
+        tie(f"T{k}{k + 1}", f"AC{k}", f"AC{k + 1}", "open") for k in range(1, 8)
+    ]
+    doc["loads"] += [load("LD1", "DC1", 1500), load("LD2", "DC2", 900), load("LDB", "DCBAT", 300)]
+    return doc
+
+
 def fx_colours():
     return definition(
         [
@@ -776,7 +819,7 @@ def fx_many():
     setp(doc, "$.buses[0].voltage", 0)
     doc["loads"].append(load("LA", "AC1", 1))
     doc["contactors"].append(tie("TBAD", "AC1", "DC1"))
-    doc["scenarios"].append(scenario("S1", {"GHOST": "failed", "G1": "closed"}, "n"))
+    doc["scenarios"] = [scenario("S1", {"GHOST": "failed", "G1": "closed"}, "n")]
     return doc
 
 
@@ -845,6 +888,8 @@ _BUILDERS = {
     "FX-CHAINS": fx_chains,
     "FX-CROSS": fx_cross,
     "FX-50": fx_50,
+    "FX-50N": fx_50n,
+    "FX-8ENGN": fx_8engn,
     "FX-COLOURS": fx_colours,
     "FX-TRAN": fx_tran,
     "FX-DISPLAY": fx_display,

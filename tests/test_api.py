@@ -2,16 +2,19 @@
 subprocess (H-SERVER). The harness fixtures are in tests/conftest.py.
 """
 
+import asyncio
 import hashlib
+import inspect
 import json
 import re
 import socket
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 import pytest
-from conftest import REPO, fx, put_def
+from conftest import REPO, fx, put_def, setp
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -177,9 +180,11 @@ def test_traversal_empty_and_reserved_upload_names(client, defs_dir):
         assert upload(client, fx("FX-SINGLE"), name).status_code == 201, name
         assert (defs_dir / expected).is_file(), name
     refused = [".json", "../.json", "nul.json", "NUL.json", "con.json", "COM1.json", "lpt9.json"]
+    refused += ["é.json", "__.json", "日本語.json"]
     after_good = tree(defs_dir)
     for name in refused:
-        assert_rejection(upload(client, fx("FX-SINGLE"), name))
+        body = assert_rejection(upload(client, fx("FX-SINGLE"), name))
+        assert "usable file name" in body["errors"][0]["message"], name
     assert tree(defs_dir) == after_good
     assert all(re.fullmatch(r"[A-Za-z0-9_-]+\.json", n) for n in after_good)
     assert tree(defs_dir.parent) == ["defs"]
@@ -512,3 +517,290 @@ def test_definitions_folder_comes_from_the_environment(tmp_path, start_server):
         ids = {d["id"] for d in http.get(BASE).json()["definitions"]}
         assert "generic_twin" in ids
     assert digest() == before
+
+
+# --- Local requests only (DD-029) ----------------------------------------------------------------
+
+
+ALL_ROUTES = [
+    ("GET", "/"),
+    ("GET", "/app.js"),
+    ("GET", BASE),
+    ("POST", BASE),
+    ("GET", f"{BASE}/generic_twin"),
+    ("POST", f"{BASE}/generic_twin/analyse"),
+    ("POST", f"{BASE}/generic_twin/batch"),
+    ("GET", f"{BASE}/generic_twin/batch/export?format=csv"),
+]
+
+
+def assert_error_shape(response, status):
+    assert response.status_code == status
+    body = response.json()
+    assert set(body) == {"errors", "warnings"}
+    assert body["errors"][0]["path"] and body["errors"][0]["message"]
+
+
+@pytest.mark.tc("TC-API-024")
+@pytest.mark.parametrize(
+    "host", ["localhost", "localhost:8000", "127.0.0.1:8000", "[::1]", "[::1]:8000", "LOCALHOST"]
+)
+def test_local_hosts_are_served(client, host):
+    assert client.get(BASE, headers={"host": host}).status_code == 200
+
+
+@pytest.mark.tc("TC-API-024")
+@pytest.mark.parametrize(
+    "host",
+    [
+        "evil.example",
+        "evil.example:8000",
+        "localhost.evil.example",
+        "127.0.0.1.evil.example",
+        "[::2]:8000",
+        "[::1].evil.example",
+        "0.0.0.0:8000",
+        "",
+    ],
+)
+@pytest.mark.parametrize("method, path", ALL_ROUTES)
+def test_other_hosts_are_refused(client, host, method, path):
+    assert_error_shape(client.request(method, path, headers={"host": host}), 400)
+
+
+@pytest.mark.tc("TC-API-024")
+def test_a_real_server_refuses_another_host(start_server):
+    server = start_server()
+    with httpx.Client(base_url=server.url, timeout=30) as http:
+        assert http.get(BASE).status_code == 200
+        assert_error_shape(http.get(BASE, headers={"host": "evil.example"}), 400)
+
+
+@pytest.mark.tc("TC-API-025")
+@pytest.mark.parametrize(
+    "origin",
+    ["http://127.0.0.1:8000", "http://localhost:5173", "http://[::1]:8000", "https://localhost"],
+)
+def test_local_origins_are_served(client, origin):
+    assert client.post(f"{BASE}/generic_twin/batch", headers={"origin": origin}).status_code == 200
+
+
+@pytest.mark.tc("TC-API-025")
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://evil.example",
+        "http://127.0.0.1.evil.example",
+        "http://localhost.evil.example:8000",
+        "http://localhost@evil.example",
+        "http://[::2]:8000",
+        "null",
+        "file://",
+        "ftp://localhost",
+    ],
+)
+@pytest.mark.parametrize("method, path", ALL_ROUTES)
+def test_other_origins_are_refused(client, defs_dir, origin, method, path):
+    before = tree(defs_dir)
+    assert_error_shape(client.request(method, path, headers={"origin": origin}), 403)
+    assert tree(defs_dir) == before
+
+
+@pytest.mark.tc("TC-API-025")
+@pytest.mark.parametrize("method, path", ALL_ROUTES[:3] + ALL_ROUTES[4:5])
+def test_no_origin_header_is_allowed(client, method, path):
+    assert client.request(method, path).status_code == 200
+
+
+# --- Limits (DD-028) -----------------------------------------------------------------------------
+
+
+def run_in_own_thread(coroutine):
+    """Playwright's sync API keeps an event loop running in the main thread during a full run."""
+    with ThreadPoolExecutor(1) as pool:
+        return pool.submit(asyncio.run, coroutine).result()
+
+
+def padded(doc, size):
+    """A definition's JSON text padded with spaces to exactly `size` bytes."""
+    text = json.dumps(doc).encode("utf-8")
+    return text + b" " * (size - len(text))
+
+
+@pytest.mark.tc("TC-API-026")
+def test_upload_at_the_limit_is_stored_and_over_it_is_refused(client, defs_dir):
+    limit = ela.api.MAX_BODY
+    assert limit == 10_000_000
+    assert upload(client, padded(fx("FX-SINGLE"), limit), "at_limit.json").status_code == 201
+    assert (defs_dir / "at_limit.json").stat().st_size == limit
+    refused = upload(client, padded(fx("FX-SINGLE"), limit + 1), "over.json")
+    assert_error_shape(refused, 413)
+    assert not (defs_dir / "over.json").exists()
+
+
+@pytest.mark.tc("TC-API-026")
+def test_analyse_body_over_the_limit_is_refused(client):
+    limit = ela.api.MAX_BODY
+    url = analyse_url("generic_twin")
+    assert client.post(url, content=padded({"states": {}}, limit)).status_code == 200
+    assert_error_shape(client.post(url, content=padded({"states": {}}, limit + 1)), 413)
+
+
+@pytest.mark.tc("TC-API-026")
+def test_declared_length_is_refused_before_reading(client):
+    reads = []
+
+    async def receive():
+        reads.append(1)
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    async def never_called(scope, receive, send):
+        raise AssertionError("the application ran")
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": BASE,
+        "headers": [(b"content-length", str(ela.api.BodyLimit.cap + 1).encode())],
+    }
+    run_in_own_thread(ela.api.BodyLimit(never_called)(scope, receive, send))
+    assert sent[0]["status"] == 413
+    assert reads == []
+
+
+@pytest.mark.tc("TC-API-026")
+def test_stream_with_no_length_is_cut_off_while_reading():
+    chunk = 1_000_000
+    reads = []
+
+    async def receive():
+        reads.append(1)
+        return {"type": "http.request", "body": b"x" * chunk, "more_body": True}
+
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    async def never_called(scope, receive, send):
+        raise AssertionError("the application ran")
+
+    scope = {"type": "http", "method": "POST", "path": BASE, "headers": []}
+    run_in_own_thread(ela.api.BodyLimit(never_called)(scope, receive, send))
+    assert sent[0]["status"] == 413
+    assert json.loads(sent[1]["body"])["errors"]
+    assert len(reads) == ela.api.BodyLimit.cap // chunk + 1
+
+
+@pytest.mark.tc("TC-API-026")
+def test_chunked_request_through_the_client(client):
+    def chunks():
+        for _ in range(11):
+            yield b" " * 1_000_000
+
+    response = client.post(analyse_url("generic_twin"), content=chunks())
+    assert_error_shape(response, 413)
+
+
+@pytest.mark.tc("TC-API-027")
+def test_analysis_runs_off_the_event_loop(client, monkeypatch):
+    assert not inspect.iscoroutinefunction(ela.api.analyse_definition)
+    for route in (ela.api.get_definition, ela.api.run_definition_batch, ela.api.upload_definition):
+        assert not inspect.iscoroutinefunction(route)
+    loops = []
+    real = ela.api.analyse
+
+    def spy(definition, states):
+        try:
+            loops.append(asyncio.get_running_loop())
+        except RuntimeError:
+            loops.append(None)
+        return real(definition, states)
+
+    monkeypatch.setattr(ela.api, "analyse", spy)
+    assert client.post(analyse_url("generic_twin"), json={"states": {}}).status_code == 200
+    assert loops == [None]
+
+
+@pytest.mark.tc("TC-API-028")
+def test_definitions_path_that_is_a_file_gives_the_json_shape(tmp_path, monkeypatch):
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a folder", encoding="utf-8")
+    monkeypatch.setenv("ELA_DEFINITIONS_DIR", str(blocker))
+    client = TestClient(ela.api.app)
+    assert_error_shape(upload(client, fx("FX-SINGLE"), "new.json"), 500)
+
+
+@pytest.mark.tc("TC-API-028")
+def test_failed_write_gives_the_json_shape_and_leaves_no_file(client, defs_dir, monkeypatch):
+    real_open = open
+
+    def full_disk(path, mode):
+        handle = real_open(path, mode)
+
+        class Full:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                handle.close()
+
+            def write(self, data):
+                handle.write(data[:10])
+                raise OSError(28, "No space left on device")
+
+        return Full()
+
+    monkeypatch.setattr(ela.api, "open", full_disk, raising=False)
+    response = upload(client, fx("FX-SINGLE"), "partial.json")
+    assert_error_shape(response, 500)
+    assert "No space left" in response.json()["errors"][0]["message"]
+    assert not (defs_dir / "partial.json").exists()
+
+
+@pytest.mark.tc("TC-API-029")
+def test_loader_is_shared_by_upload_store_and_analyse(client, defs_dir):
+    repeated = b'{"meta": {"aircraft": "A", "aircraft": "B"}}'
+    body = assert_rejection(upload(client, repeated, "repeat.json"))
+    assert [e["path"] for e in body["errors"]] == ["$.meta.aircraft"]
+    assert not (defs_dir / "repeat.json").exists()
+
+    put_def(defs_dir, repeated.decode(), "stored.json")
+    assert [e["path"] for e in assert_rejection(client.get(f"{BASE}/stored"))["errors"]] == [
+        "$.meta.aircraft"
+    ]
+
+    states = b'{"states": {"GEN1": "failed", "GEN1": "operative"}}'
+    response = client.post(analyse_url("generic_twin"), content=states)
+    assert [e["path"] for e in assert_rejection(response)["errors"]] == ["$.states.GEN1"]
+
+    marked = b"\xef\xbb\xbf" + json.dumps({"states": {}}).encode()
+    assert client.post(analyse_url("generic_twin"), content=marked).status_code == 200
+    bom_file = b"\xef\xbb\xbf" + json.dumps(fx("FX-SINGLE")).encode()
+    assert upload(client, bom_file, "bom.json").status_code == 201
+    assert client.get(f"{BASE}/bom").status_code == 200
+
+
+@pytest.mark.tc("TC-API-029")
+def test_extreme_values_give_an_answer_not_a_crash(client, defs_dir):
+    doc = fx("FX-SINGLE")
+    doc["sources"][0]["capacity"] = {"transient": 1e-300, "short_term": 1e-300, "continuous": 1}
+    doc["trus"][0]["efficiency"] = 1e-300
+    put_def(defs_dir, doc, "extreme.json")
+    response = client.post(analyse_url("extreme"), json={"states": {}})
+    assert response.status_code == 200
+    assert response.json()["verdict"] == "FAIL"
+    over = setp(fx("FX-SINGLE"), "$.loads[0].power.transient", 1e13)
+    assert_rejection(upload(client, over, "over_cap.json"))
+
+
+@pytest.mark.tc("TC-API-029")
+def test_list_survives_a_stored_file_with_an_infinity(client, defs_dir):
+    put_def(defs_dir, '{"meta": {"aircraft": 1e999, "revision": "A"}}', "inf.json")
+    entry = listed(client)["inf"]
+    assert (entry["aircraft"], entry["revision"]) == (None, "A")

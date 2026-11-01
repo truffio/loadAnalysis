@@ -60,6 +60,8 @@ button:disabled { color: #9aa5b1; border-color: var(--line); cursor: not-allowed
   touch-action: none; cursor: grab; user-select: none;
 }
 #schematic.panning { cursor: grabbing; }
+/* A failed request leaves the last good drawing on screen, faded, until a good answer replaces it. */
+#schematic.stale #viewport { opacity: 0.4; filter: grayscale(1); }
 .hint {
   position: absolute; inset: 0; display: grid; place-items: center; margin: 0;
   color: var(--muted); font-size: 16px; pointer-events: none;
@@ -76,6 +78,7 @@ button:disabled { color: #9aa5b1; border-color: var(--line); cursor: not-allowed
 .verdict:empty { display: none; }
 .verdict.pass { color: #1b6b2e; }
 .verdict.fail { color: var(--fail); }
+.verdict.stale { color: var(--muted); font-size: 20px; }
 
 .status-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .status-item {
@@ -139,7 +142,7 @@ button:disabled { color: #9aa5b1; border-color: var(--line); cursor: not-allowed
 .clickable:hover { filter: drop-shadow(0 0 3px rgba(28, 95, 184, 0.7)); }
 
 .names, .labels { pointer-events: none; }
-.icon-name { font-size: 10px; font-weight: 600; fill: #3b4652; dominant-baseline: central; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
+.icon-name { font-size: 10px; font-weight: 600; fill: #3b4652; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
 .bus-name { font-size: 10px; font-weight: 600; fill: #ffffff; dominant-baseline: central; }
 .bus-name.status-overloaded { fill: #2b1a00; }
 .value-label { font-size: 10px; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; font-variant-numeric: tabular-nums; }

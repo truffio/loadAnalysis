@@ -12,11 +12,23 @@ import urllib.request
 
 import httpx
 import pytest
-from conftest import REPO, contrast, fx, hue_sat, put_def, setp
+from conftest import (
+    REPO,
+    ac,
+    c,
+    contrast,
+    definition,
+    find,
+    fx,
+    gen,
+    hue_sat,
+    load,
+    put_def,
+    setp,
+)
 from playwright.sync_api import expect
 
-from ela.batch import run_batch
-from ela.format import format_pct
+from ela.format import format_pct, round_half_up
 from ela.layout import layout
 from ela.validate import validate
 
@@ -24,6 +36,10 @@ pytestmark = pytest.mark.e2e
 
 SAMPLE = json.loads((REPO / "definitions" / "generic_twin.json").read_text("utf-8"))
 WEB = REPO / "web"
+
+
+DEFINITION_PLACEHOLDER = "Choose a definition…"
+SCENARIO_PLACEHOLDER = "Choose a scenario…"
 
 
 def def_id(name):
@@ -232,6 +248,29 @@ def test_switching_definition_resets_the_view(h_page, defs_dir):
             expect(h.page.locator("#viewport")).to_have_attribute("transform", initial)
 
 
+@pytest.mark.tc("TC-WIN-008")
+def test_a_late_definition_does_not_replace_a_later_choice(h_page, defs_dir):
+    store(defs_dir, "FX-BATCH", "FX-SINGLE")
+    h = h_page()
+    held = []
+    h.page.route("**/api/definitions/fx_batch", lambda route: held.append(route))
+    h.page.select_option("#definition-select", "fx_batch")  # its answer is held
+    h.open("fx_single")
+    expect(h.group("G1")).to_have_count(1)
+    expect(h.group("G2")).to_have_count(0)
+    assert len(held) == 1
+    with h.page.expect_response(lambda r: r.url.endswith("/api/definitions/fx_batch")):
+        held[0].continue_()
+    h.settle()
+    # The second choice is what is shown, drawn and analysed, and the select still says so.
+    assert h.page.input_value("#definition-select") == "fx_single"
+    expect(h.group("G2")).to_have_count(0)
+    expect(h.group("T13")).to_have_count(0)
+    assert h.page.locator("#scenario-select option").all_text_contents() == [SCENARIO_PLACEHOLDER]
+    expect(h.page.locator("#status-verdict")).to_have_text("PASS")
+    assert [entry["states"] for entry in h.log] == [{}]
+
+
 # --- C-WEBINT: schematic ------------------------------------------------------------------------
 
 
@@ -300,9 +339,9 @@ def test_no_load_or_breaker_drawn(h_page):
             return [...names];
         }"""
     )
-    for load in SAMPLE["loads"]:
-        assert load["id"] not in drawn
-        assert load["name"] not in drawn
+    for entry in SAMPLE["loads"]:
+        assert entry["id"] not in drawn
+        assert entry["name"] not in drawn
 
 
 @pytest.mark.tc("TC-WIN-013")
@@ -537,6 +576,39 @@ def test_band_selector(h_page, defs_dir):
     assert h.page.locator("#band-select option").all_text_contents() == [
         "Peak", "5 s", "Continuous",
     ]
+
+
+@pytest.mark.tc("TC-WIN-022")
+def test_each_band_is_chosen_by_its_visible_label(h_page, defs_dir):
+    # A person picks "5 s" or "Transient" by what the list says, so the label must lead to its band.
+    h = opened(h_page, defs_dir, "FX-SINGLE")
+    demand = analyse_api(h, "FX-SINGLE")["el"]["AC1"]["demand"]
+    assert demand == {"transient": 4000, "short_term": 3100, "continuous": 2000}
+    shown = {"transient": "4.00 kW", "short_term": "3.10 kW", "continuous": "2.00 kW"}
+    for label, band in (("5 s", "short_term"), ("Transient", "transient"), ("Continuous", "continuous")):
+        h.page.select_option("#band-select", label=label)
+        assert h.page.input_value("#band-select") == band
+        expect(h.label("AC1")).to_contain_text(shown[band])
+        for other in set(shown) - {band}:
+            assert shown[other] not in label_text(h, "AC1"), (label, other)
+        assert [r["demand"] for r in tooltip_rows(tooltip_of(h, "AC1")).values()] == [
+            watts(demand[b]) for b in ("transient", "short_term", "continuous")
+        ]
+
+
+@pytest.mark.tc("TC-WIN-021")
+def test_bus_current_follows_the_chosen_band(h_page, defs_dir):
+    h = opened(h_page, defs_dir, "FX-SINGLE")
+    record = analyse_api(h, "FX-SINGLE")["el"]
+    seen = {}
+    for band in ("transient", "short_term", "continuous"):
+        h.page.select_option("#band-select", band)
+        for bus in ("AC1", "DC1"):
+            amps = format(round_half_up(record[bus]["current"][band], 2), "f")
+            volts = format_pct(record[bus]["voltage"][band])
+            expect(h.label(bus)).to_contain_text(f"{volts} V {amps} A")
+            seen.setdefault(bus, set()).add(amps)
+    assert {bus: len(amps) for bus, amps in seen.items()} == {"AC1": 3, "DC1": 3}
 
 
 @pytest.mark.tc("TC-WIN-023")
@@ -789,7 +861,9 @@ def test_definition_text_is_shown_as_text(h_page, defs_dir):
     put_def(defs_dir, doc, "fx_markup.json")
     h = h_page()
     h.open("fx_markup")
-    assert h.page.locator("#scenario-select option").all_text_contents() == [markup]
+    assert h.page.locator("#scenario-select option").all_text_contents() == [
+        SCENARIO_PLACEHOLDER, markup,
+    ]
     tip = tooltip_of(h, "G1")
     assert markup in tip.text_content()
     tooltip_of(h, "AC1")
@@ -885,16 +959,28 @@ def test_reset_keeps_the_band_and_clears_the_scenario(h_page, defs_dir):
 def test_load_scenario(h_page, defs_dir):
     h = opened(h_page, defs_dir, "FX-BATCH")
     names = [s["name"] for s in fx("FX-BATCH")["scenarios"]]
-    assert h.page.locator("#scenario-select option").all_text_contents() == names
+    assert h.page.locator("#scenario-select option").all_text_contents() == [
+        SCENARIO_PLACEHOLDER, *names,
+    ]
     assert len(names) == 5
     h.group("G2").click()
     expect(h.group("G2")).to_have_attribute("data-state", "failed")
     h.page.select_option("#scenario-select", "S5")
     expect(h.group("G2")).to_have_attribute("data-state", "operative")
     expect(h.group("T13")).to_have_attribute("data-state", "closed")
-    batch = {r["scenario_id"]: r for r in run_batch(validate(fx("FX-BATCH")).definition)}
-    expect(h.page.locator("#status-verdict")).to_have_text(batch["S5"]["result"])
+    expect(h.page.locator("#status-verdict")).to_have_text("FAIL")  # hand-worked in FX-BATCH
     assert h.page.input_value("#scenario-select") == "S5"
+
+
+@pytest.mark.tc("TC-WIN-036")
+@pytest.mark.parametrize("scenario_id", ["S07", "S13"])
+def test_load_scenario_gives_the_hand_calculated_verdict(h_page, scenario_id):
+    hand = json.loads((REPO / "tests" / "data" / "generic_twin_expected.json").read_text("utf-8"))
+    h = h_page()
+    h.open("generic_twin")
+    h.page.select_option("#scenario-select", scenario_id)
+    verdict = h.page.locator("#status-verdict")
+    expect(verdict).to_have_text(hand["scenarios"][scenario_id]["result"])
 
 
 @pytest.mark.tc("TC-WIN-046")
@@ -1000,6 +1086,203 @@ def test_status_panel_mesh_warning(h_page, defs_dir):
     expect(h.page.locator("#status-verdict")).to_have_text("PASS")
 
 
+@pytest.mark.tc("TC-WIN-049")
+def test_tooltip_shows_what_feeds_a_bus(h_page):
+    h = h_page()
+    h.open("generic_twin")
+    ac_sources = {s["id"] for s in SAMPLE["sources"] if s["output"] == "AC"}
+    source_contactors = [
+        k for k in SAMPLE["contactors"] if k["kind"] == "source" and {k["from"], k["to"]} & ac_sources
+    ]
+    assert len(source_contactors) == 5
+    for k in source_contactors:
+        if k["default_state"] == "closed":
+            h.group(k["id"]).click()
+            expect(h.group(k["id"])).to_have_attribute("data-state", "open")
+    dcess, dc1 = sample_bus("DC ESS")["id"], sample_bus("DC BUS 1")["id"]
+    expect(h.group(dcess)).to_have_attribute("data-energised", "true")
+    expect(h.group(dc1)).to_have_attribute("data-energised", "false")
+    battery = next(s for s in SAMPLE["sources"] if s["kind"] == "battery")
+    assert battery["name"] != battery["id"]
+    tip = tooltip_of(h, dcess)
+    assert tip.locator('dd[data-fact="fed by"]').all_text_contents() == [battery["name"]]
+    states = {k["id"]: "open" for k in source_contactors}
+    assert analyse_api(h, "generic_twin", states)["el"][dcess]["fed_by"] == [battery["id"]]
+    dead = tooltip_of(h, dc1)
+    expect(dead.locator('dd[data-fact="fed by"]')).to_have_count(0)
+    assert "Fed by" not in dead.text_content()
+
+
+@pytest.mark.tc("TC-WIN-049")
+def test_fed_by_lists_names_in_id_order(h_page, defs_dir):
+    # Two batteries on one island: both feed it, and the line names them, not their ids.
+    doc = fx("FX-BAT2")
+    for source in doc["sources"]:
+        source["name"] = f"Battery {source['id']}"
+    put_def(defs_dir, doc, "fx_bat2.json")
+    h = h_page()
+    h.open("fx_bat2")
+    buses = [b["id"] for b in doc["buses"]]
+    reply = analyse_api(h, "FX-BAT2")
+    fed = {b: reply["el"][b]["fed_by"] for b in buses}
+    assert any(len(v) == 2 for v in fed.values()), fed
+    for bus, ids in fed.items():
+        if not ids:
+            continue
+        expected = ", ".join(f"Battery {i}" for i in ids)
+        assert tooltip_of(h, bus).locator('dd[data-fact="fed by"]').text_content() == expected
+
+
+@pytest.mark.tc("TC-WIN-049")
+def test_an_idle_battery_is_not_listed_on_a_rectifier_fed_island(h_page, defs_dir):
+    doc = fx("FX-BAT")
+    find(doc, "TRU1")["name"] = "Rectifier One"
+    find(doc, "BAT")["name"] = "Standby Battery"
+    put_def(defs_dir, doc, "fx_bat.json")
+    h = h_page()
+    h.open("fx_bat")
+    assert analyse_api(h, "FX-BAT")["el"]["DCB"]["fed_by"] == ["TRU1"]
+    for bus in ("DC1", "DCB"):
+        fed = tooltip_of(h, bus).locator('dd[data-fact="fed by"]')
+        assert fed.all_text_contents() == ["Rectifier One"]
+    h.group("G1").click()  # the rectifier loses its input, and the battery takes over
+    expect(h.group("DCB")).to_have_attribute("data-energised", "true")
+    assert tooltip_of(h, "DCB").locator('dd[data-fact="fed by"]').all_text_contents() == [
+        "Standby Battery"
+    ]
+
+
+@pytest.mark.tc("TC-WIN-050")
+def test_a_failed_analysis_shows_not_analysed(h_page, defs_dir):
+    store(defs_dir, "FX-SINGLE")
+    h = h_page()
+    failing = []
+
+    def route(handler):
+        if failing:
+            handler.fulfill(
+                status=500, content_type="application/json",
+                body=json.dumps({"errors": [{"path": "$", "message": "forced failure"}]}),
+            )
+        else:
+            handler.continue_()
+
+    h.page.route("**/analyse", route)
+    h.open("fx_single")
+    verdict = h.page.locator("#status-verdict")
+    schematic = h.page.locator("#schematic")
+    expect(verdict).to_have_text("PASS")
+    expect(schematic).to_have_attribute("data-stale", "false")
+    failing.append(True)
+    h.group("G1").click()
+    expect(verdict).to_have_text("Not analysed")
+    expect(schematic).to_have_attribute("data-stale", "true")
+    expect(schematic).to_have_class(re.compile(r"\bstale\b"))
+    expect(h.page.locator("#message")).to_contain_text("was not analysed")
+    expect(h.page.locator("#message")).to_contain_text("forced failure")
+    expect(h.page.locator("#status-list li")).to_have_count(0)
+    # What is drawn is the last good answer, and the states agree with it.
+    expect(h.group("G1")).to_have_attribute("data-state", "operative")
+    # A band change redraws the schematic but must not bring the old verdict back.
+    h.page.select_option("#band-select", "transient")
+    expect(verdict).to_have_text("Not analysed")
+    failing.clear()
+    before = len(h.log)
+    h.group("G1").click()  # builds on what is shown: G1 operative, so this fails it
+    expect(h.group("G1")).to_have_attribute("data-state", "failed")
+    assert h.log[before:][-1]["states"] == {"G1": "failed"}
+    expect(verdict).to_have_text("PASS")  # FX-SINGLE has no essential load
+    expect(schematic).to_have_attribute("data-stale", "false")
+    expect(h.page.locator("#message")).to_be_empty()
+
+
+@pytest.mark.tc("TC-WIN-050")
+def test_a_failed_scenario_request_leaves_the_selection_with_the_drawing(h_page, defs_dir):
+    store(defs_dir, "FX-BATCH")
+    h = h_page()
+    failing = []
+
+    def route(handler):
+        if failing:
+            handler.abort("failed")  # the server is unreachable
+        else:
+            handler.continue_()
+
+    h.page.route("**/analyse", route)
+    h.open("fx_batch")
+    h.page.select_option("#scenario-select", "S2")
+    expect(h.group("G1")).to_have_attribute("data-state", "failed")
+    failing.append(True)
+    h.page.select_option("#scenario-select", "S5")
+    expect(h.page.locator("#status-verdict")).to_have_text("Not analysed")
+    expect(h.page.locator("#message")).to_contain_text("could not be reached")
+    # S2 is still what is drawn, so S2 is still what the list says.
+    assert h.page.input_value("#scenario-select") == "S2"
+    expect(h.group("G1")).to_have_attribute("data-state", "failed")
+    failing.clear()
+    h.page.select_option("#scenario-select", "S5")
+    expect(h.page.locator("#status-verdict")).to_have_text("FAIL")
+    expect(h.group("G1")).to_have_attribute("data-state", "operative")
+    assert h.log[-1]["states"] == {"T13": "closed"}
+
+
+@pytest.mark.tc("TC-WIN-051")
+def test_status_panel_and_tooltips_stay_in_watts(h_page, defs_dir):
+    # 1100.44 W against 1100 W: a kW figure would round both to 1.10 kW and hide the overload.
+    doc = definition(
+        [gen(1, 1100)], [ac("AC1")], [], [c("G1", "AC1")], [load("L1", "AC1", 1000.4)]
+    )
+    put_def(defs_dir, doc, "fx_small.json")
+    h = h_page()
+    h.open("fx_small")
+    expect(h.page.locator("#status-verdict")).to_have_text("FAIL")
+    entries = overload_entries(h)
+    assert len(entries) == 3
+    assert {(e["with_margin"], e["capacity"]) for e in entries} == {("1100.44 W", "1100 W")}
+    assert "kW" not in h.page.locator("#status-list").text_content()
+    tip = tooltip_of(h, "G1")
+    for row in tooltip_rows(tip).values():
+        assert row["demand"] == "1000.4 W"
+        assert row["with_margin"] == "1100.44 W"
+        assert row["capacity"] == "1100 W"
+        assert row["margin"] == "-0.44 W (-0.04 %)"
+    assert "kW" not in tip.text_content()
+    bus_tip = tooltip_of(h, "AC1")
+    assert "kW" not in bus_tip.text_content()
+    assert tooltip_rows(bus_tip)["continuous"]["demand"] == "1000.4 W"
+    # The labels beside the symbols follow the kW rule, as L2-WIN-025 has it.
+    assert "1.00 kW" in label_text(h, "AC1")
+    assert "1.00 kW" in label_text(h, "G1")
+
+
+@pytest.mark.tc("TC-WIN-052")
+def test_selects_have_a_placeholder(h_page, defs_dir):
+    store(defs_dir, "FX-BATCH")
+    h = h_page()
+    assert h.page.input_value("#definition-select") == ""
+    expect(h.page.locator("#definition-select option:checked")).to_have_text(DEFINITION_PLACEHOLDER)
+    options = h.page.locator("#definition-select option")
+    assert options.first.text_content() == DEFINITION_PLACEHOLDER
+    assert options.first.get_attribute("value") == ""
+    assert h.options() == ["", "fx_batch", "generic_twin"]
+    assert h.page.locator("#scenario-select option").all_text_contents() == [SCENARIO_PLACEHOLDER]
+    h.open("fx_batch")
+    assert h.page.locator("#scenario-select option").first.get_attribute("value") == ""
+    assert h.page.input_value("#scenario-select") == ""
+    expect(h.page.locator("#scenario-select option:checked")).to_have_text(SCENARIO_PLACEHOLDER)
+    h.page.select_option("#scenario-select", "S5")
+    expect(h.page.locator("#scenario-select option:checked")).to_have_text(
+        'Overload, tie to "AC3" — T13'
+    )
+    h.page.click("#reset")
+    expect(h.page.locator("#scenario-select option:checked")).to_have_text(SCENARIO_PLACEHOLDER)
+    # Choosing the placeholder of the definition list closes the definition.
+    h.page.select_option("#definition-select", "")
+    expect(h.page.locator("#schematic [data-id]")).to_have_count(0)
+    expect(h.page.locator("#empty-hint")).to_be_visible()
+    assert h.page.input_value("#scenario-select") == ""
+
+
 # --- C-WEBINT: stack ----------------------------------------------------------------------------
 
 
@@ -1080,12 +1363,16 @@ def test_published_dom_hooks(h_page):
 def test_interactive_front_end_has_browser_tests(e2e_run):
     from test_traceability import collected_marked, covered_by, requirement_ids
 
+    # L2-WIN-048 to L2-WIN-052 are about the stack, not about the page. Every other one is.
     section = [
         r
         for r in requirement_ids()
-        if r.startswith("L2-WIN-") and (int(r.split("-")[-1]) <= 47 or r == "L2-WIN-053")
+        if r.startswith("L2-WIN-") and not 48 <= int(r.split("-")[-1]) <= 52
     ]
-    assert len(section) == 48
+    assert {r for r in section if int(r.split("-")[-1]) >= 53} == {
+        f"L2-WIN-0{n}" for n in range(53, 61)
+    }
+    assert len(section) == 55
     covered = covered_by(collected_marked("e2e and not meta"))
     assert sorted(set(section) - covered) == []
     assert e2e_run.returncode == 0, e2e_run.stdout[-3000:]

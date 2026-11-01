@@ -24,7 +24,14 @@ import readme_tools as rt
 from conftest import REPO, find, fx, put_def, scenario, setp, tri
 from playwright.sync_api import expect
 from test_cli import NO_SOCKET
-from test_web_batch import FX_BATCH_ROWS, expand, row, run_batch_on_page, table_cells
+from test_web_batch import (
+    BAND_LABELS,
+    FX_BATCH_ROWS,
+    expand,
+    row,
+    run_batch_on_page,
+    table_cells,
+)
 from test_web_interactive import (
     SAMPLE,
     hue_sat,
@@ -62,6 +69,13 @@ def write_doc(folder, doc, name="defn.json"):
     path = folder / name
     path.write_text(json.dumps(doc), encoding="utf-8")
     return path
+
+
+def band_keys(rows):
+    """Table rows with the worst band as its key again. The table shows its label (DD-033), the CLI
+    and the exports keep the key."""
+    keys = {label: key for key, label in BAND_LABELS.items()}
+    return [[keys.get(cell, cell) if i == 4 else cell for i, cell in enumerate(r)] for r in rows]
 
 
 def stdout_cells(done):
@@ -158,7 +172,7 @@ def test_one_file_is_the_only_input(client, defs_dir, start_server, tmp_path):
     copy = alone / "generic_twin.json"
     copy.write_bytes(SAMPLE_FILE.read_bytes())
     done = cli(copy.name, cwd=alone)
-    assert done.returncode in (0, 1), done.stderr
+    assert done.returncode == 1, done.stderr  # the sample fails some scenarios by design
     cli_cells = stdout_cells(done)
     assert [r["scenario_id"] for r in api_results] == [c[0] for c in cli_cells]
     assert len(api_results) == len(SAMPLE["scenarios"]) == 15
@@ -174,7 +188,7 @@ def test_units_through_the_api(client, defs_dir):
     result = analyse(client, name)
     assert demand(result, "AC1") == pytest.approx((1000, 1000, 1000))
     assert triple(result["el"]["G1"]["with_margin"]) == pytest.approx((1100, 1100, 1100))
-    assert 1000 * 1.10 == pytest.approx(1100)
+    assert triple(result["el"]["G1"]["margin_w"]) == pytest.approx((900, 900, 900))
 
 
 @pytest.mark.tc("TC-SYS-003")
@@ -382,7 +396,7 @@ def test_throughput_and_upstream_propagation(client, defs_dir):
 
     result = analyse(client, stored(defs_dir, single_without_load_la(), "fx_single"))
     assert demand(result, "G1") == pytest.approx((1000, 1000, 1000))
-    assert 850 / 0.85 == pytest.approx(1000)
+    assert triple(result["el"]["TRU1"]["input"]) == pytest.approx((1000, 1000, 1000))
 
 
 @pytest.mark.tc("TC-SYS-013")
@@ -506,7 +520,12 @@ def test_voltage_power_and_current(client, defs_dir):
     assert triple(bus["voltage"]) == (115, 115, 115)
     assert demand(result, "AC1") == pytest.approx((3450, 3450, 3450))
     assert triple(bus["current"]) == pytest.approx((10, 10, 10))
-    assert 3450 / (3 * 115) == pytest.approx(10)
+
+    single_phase = definition(
+        [gen(1, 5000)], [ac("AC1", phases=1)], [], [c("G1", "AC1")], [load("L", "AC1", 3450)]
+    )
+    result = analyse(client, stored(defs_dir, single_phase, "fx_one_phase"))
+    assert triple(result["el"]["AC1"]["current"]) == pytest.approx((30, 30, 30))
 
 
 @pytest.mark.tc("TC-SYS-021")
@@ -871,8 +890,8 @@ def test_browser_and_cli_runs_agree(h_page, defs_dir, tmp_path):
         shown = table_cells(h)
         out = tmp_path / f"{name}.json"
         done = cli(path, "--json", out)
-        assert done.returncode in (0, 1), done.stderr
-        assert stdout_cells(done) == shown
+        assert done.returncode == 1, done.stderr  # both fail some scenarios by design
+        assert stdout_cells(done) == band_keys(shown)
         results = json.loads(out.read_text("utf-8"))
         assert [r["scenario_id"] for r in results] == [cells[0] for cells in shown]
         if name == "fx_batch":
@@ -918,7 +937,7 @@ def test_exports_parse_and_match(h_page):
     h = h_page()
     h.open("generic_twin")
     run_batch_on_page(h)
-    shown = table_cells(h)
+    shown = band_keys(table_cells(h))
     downloads = {}
     for kind, control in (("csv", "#export-csv"), ("json", "#export-json")):
         with h.page.expect_download() as download:

@@ -1,7 +1,7 @@
 """Pydantic schema for the JSON definition file (docs/spec.md §5).
 
-Parsing is strict: a number is a finite JSON number, never a boolean or numeric string. Rules that
-span several elements live in `ela.validate`.
+Parsing is strict: a number is a finite JSON number of at most 1e12 in magnitude (DD-028), never a
+boolean or numeric string. Rules that span several elements live in `ela.validate`.
 """
 
 from typing import Annotated, Literal
@@ -11,7 +11,6 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
-    StrictInt,
     StrictStr,
     ValidationInfo,
     field_validator,
@@ -21,12 +20,15 @@ from pydantic_core import PydanticCustomError
 
 BAND_NAMES = ("transient", "short_term", "continuous")
 
-Number = Annotated[float, Field(strict=True, allow_inf_nan=False)]
-Watts = Annotated[float, Field(strict=True, allow_inf_nan=False, ge=0)]
-Volts = Annotated[float, Field(strict=True, allow_inf_nan=False, gt=0)]
-Margin = Annotated[float, Field(strict=True, allow_inf_nan=False, ge=0)]
+LIMIT = 10**12  # DD-028
+
+Number = Annotated[float, Field(strict=True, allow_inf_nan=False, ge=-LIMIT, le=LIMIT)]
+Watts = Annotated[float, Field(strict=True, allow_inf_nan=False, ge=0, le=LIMIT)]
+Volts = Annotated[float, Field(strict=True, allow_inf_nan=False, gt=0, le=LIMIT)]
+Margin = Annotated[float, Field(strict=True, allow_inf_nan=False, ge=0, le=LIMIT)]
 Efficiency = Annotated[float, Field(strict=True, allow_inf_nan=False, gt=0, le=1)]
-Phases = Annotated[int, Field(strict=True, ge=1)]
+Phases = Annotated[int, Field(strict=True, ge=1, le=LIMIT)]
+EngineNumber = Annotated[int, Field(strict=True, ge=-LIMIT, le=LIMIT)]
 
 SwitchState = Literal["closed", "open"]
 RunState = Literal["operative", "failed"]
@@ -87,7 +89,7 @@ class Rated(Element):
 
 class Source(Rated):
     kind: Literal["engine_generator", "apu_generator", "emergency_generator", "battery"]
-    engine: StrictInt | None = Field(default=None, validate_default=True)
+    engine: EngineNumber | None = Field(default=None, validate_default=True)
     output: Literal["AC", "DC"]
     voltage: Volts
     phases: Phases = 3  # read only on AC. `phases` in the file of a DC source is an unknown key.

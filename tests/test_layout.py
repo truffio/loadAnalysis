@@ -8,6 +8,7 @@ browser harness, so they wait for E7 (see DEFERRED_CASES in tests/test_traceabil
 import inspect
 import json
 import os
+import random
 import subprocess
 import sys
 from itertools import combinations, pairwise
@@ -131,7 +132,7 @@ def sample_docs():
 
 def readable_docs():
     """Everything the 50-item readability rules are held to."""
-    return [fx("FX-50"), *sample_docs()]
+    return [fx("FX-50"), fx("FX-50N"), fx("FX-8ENGN"), *sample_docs()]
 
 
 # --- Reading a layout -----------------------------------------------------------------------
@@ -425,6 +426,23 @@ def test_one_item_per_displayed_element(doc):
         assert switch["x"] <= bar["x"] + bar["width"]
 
 
+@pytest.mark.tc("TC-LAY-019")
+@pytest.mark.parametrize("doc", sample_docs(), ids=lambda d: d["meta"]["aircraft"])
+def test_reversed_tru_contactors_keep_their_rows(doc):
+    trus = {t["id"] for t in doc["trus"]}
+    for contactor in doc["contactors"]:
+        if contactor["kind"] == "tru":
+            contactor["from"], contactor["to"] = contactor["to"], contactor["from"]
+    assert validate(doc).errors == []
+    items = by_id(lay(doc))
+    for t in doc["trus"]:
+        ins = [k for k in doc["contactors"] if k["id"] == f"{t['id']}_IN"]
+        outs = [k for k in doc["contactors"] if k["id"] == f"{t['id']}_OUT"]
+        assert len(ins) == len(outs) == 1
+        assert ins[0]["from"] in trus and outs[0]["to"] in trus
+        assert items[ins[0]["id"]]["y"] < items[t["id"]]["y"] < items[outs[0]["id"]]["y"]
+
+
 def layer_groups(doc):
     """Item ids in the six groups of TC-LAY-003."""
     trus = {t["id"] for t in doc["trus"]}
@@ -479,9 +497,27 @@ def test_dc_bus_role_order_on_the_sample(doc):
 @pytest.mark.tc("TC-LAY-005")
 def test_dc_bus_role_order_on_roles():
     items = by_id(lay(fx("FX-ROLES")))
-    assert items["DC1"]["y"] <= items["DCE"]["y"]
+    assert items["DC1"]["y"] < items["DCE"]["y"]
     for bus in ("DCM", "DCB", "DCO"):
-        assert items["DCE"]["y"] <= items[bus]["y"]
+        assert items["DCE"]["y"] < items[bus]["y"]
+
+
+@pytest.mark.tc("TC-LAY-005")
+def test_dc_buses_with_no_ties_keep_their_role_rows():
+    doc = definition(
+        [bat("B1"), bat("B2"), bat("B3"), bat("B4")],
+        [
+            dc("D_BAT", role="battery"),
+            dc("D_EMER", role="emergency"),
+            dc("D_ESS", role="essential"),
+            dc("D_MAIN"),
+        ],
+        [],
+        [c("B1", "D_BAT"), c("B2", "D_EMER"), c("B3", "D_ESS"), c("B4", "D_MAIN")],
+    )
+    items = by_id(lay(doc))
+    assert items["D_MAIN"]["y"] < items["D_ESS"]["y"] < items["D_EMER"]["y"]
+    assert items["D_ESS"]["y"] < items["D_BAT"]["y"]
 
 
 @pytest.mark.tc("TC-LAY-006")
@@ -489,6 +525,21 @@ def test_source_layer_order():
     items = by_id(lay(fx("FX-REVERSE")))
     xs = [items[i]["x"] for i in ("G1", "G2", "APU", "RAT_AC", "BAT")]
     assert xs == sorted(xs) and len(set(xs)) == 5
+
+
+@pytest.mark.tc("TC-LAY-006")
+def test_generators_follow_engine_number_not_id():
+    sources = [gen(1), gen(2), gen(3)]
+    for source, engine in zip(sources, (3, 1, 2), strict=True):
+        source["engine"] = engine
+    doc = definition(
+        sources,
+        [ac("AC1"), ac("AC2"), ac("AC3")],
+        [],
+        [c("G1", "AC1"), c("G2", "AC2"), c("G3", "AC3")],
+    )
+    items = by_id(lay(doc))
+    assert items["G2"]["x"] < items["G3"]["x"] < items["G1"]["x"]
 
 
 @pytest.mark.tc("TC-LAY-007")
@@ -666,6 +717,56 @@ def test_no_false_joins(doc):
             assert not on_polyline(point, a), (a, b)
 
 
+def shared_runs(a, b):
+    """The stretches two connectors run along together, as (line, low, high)."""
+    runs = []
+    for s in segments(a):
+        for t in segments(b):
+            if segments_share_a_line(s, t):
+                axis = 0 if s[0][0] == s[1][0] else 1
+                other = 1 - axis
+                low = max(min(s[0][other], s[1][other]), min(t[0][other], t[1][other]))
+                high = min(max(s[0][other], s[1][other]), max(t[0][other], t[1][other]))
+                runs.append((s[0][axis], low, high))
+    return runs
+
+
+def random_topology(seed):
+    """A small aircraft from one seed, with ties that a tidy layout would not choose."""
+    rng = random.Random(seed)
+    engines = rng.randint(1, 4)
+    ac_ids = [f"AC{k}" for k in range(1, rng.randint(2, 5) + 1)]
+    dc_ids = [f"DC{k}" for k in range(1, rng.randint(2, 4) + 1)]
+    ac_buses = [ac(b, role=rng.choice(["main", "main", "essential", "other"])) for b in ac_ids]
+    dc_buses = [dc(b, role=rng.choice(["main", "essential", "battery", "other"])) for b in dc_ids]
+    sources = [gen(k) for k in range(1, engines + 1)] + [apu(), bat("BAT")]
+    contactors = [c(f"G{k}", rng.choice(ac_ids)) for k in range(1, engines + 1)]
+    contactors += [c("APU", rng.choice(ac_ids), id_="C_APU1"), c("APU", rng.choice(ac_ids), id_="C_APU2")]
+    contactors.append(c("BAT", rng.choice(dc_ids)))
+    pairs = list(combinations(ac_ids, 2)) + list(combinations(dc_ids, 2))
+    rng.shuffle(pairs)
+    for n, (x, y) in enumerate(pairs[: rng.randint(1, len(pairs))]):
+        contactors.append(tie(f"T{n}", x, y, rng.choice(["open", "closed"])))
+    trus = [
+        tru(f"TRU{k}", rng.choice(ac_ids), rng.choice(dc_ids)) for k in range(1, rng.randint(1, 4) + 1)
+    ]
+    return definition(sources, ac_buses + dc_buses, trus, contactors)
+
+
+@pytest.mark.tc("TC-LAY-020")
+@pytest.mark.parametrize(
+    "doc",
+    [*[random_topology(seed) for seed in (*range(60), 484, 496)], *readable_docs()],
+    ids=lambda d: f"{len(d['buses'])}-{len(d['contactors'])}",
+)
+def test_connectors_sharing_a_line_end_on_one_node(doc):
+    """Seeds 484 and 496 are the two that needed a last-resort route when this was written."""
+    drawn = lay(doc)
+    for a, b in combinations(drawn["connectors"], 2):
+        if shared_runs(a, b):
+            assert {a["from"], a["to"]} & {b["from"], b["to"]}, (a, b)
+
+
 VALID_FIXTURES = [
     "FX-SINGLE", "FX-CHAIN", "FX-RING", "FX-SRCBRIDGE", "FX-THROUGH", "FX-TWO-TRU", "FX-TIE-DC",
     "FX-TIE-EQ", "FX-BAT", "FX-BAT2", "FX-TRU-RAT", "FX-RAT", "FX-PAR", "FX-ESS", "FX-CREW",
@@ -710,6 +811,25 @@ def test_fit_scale_keeps_10_px_text_legible(doc):
     assert fit_scale(drawn) >= 1
     assert drawn["width"] <= 1000
     assert drawn["height"] <= 560
+
+
+@pytest.mark.tc("TC-LAY-021")
+@pytest.mark.parametrize("name", ["FX-50N", "FX-8ENGN"])
+def test_text_room_holds_a_name_and_a_load(name):
+    doc = fx(name)
+    drawn = by_id(lay(doc))
+    names = {e["id"]: e["name"] for key in ("sources", "trus", "buses") for e in doc[key]}
+    for id_, text in names.items():
+        item = drawn[id_]
+        if item["kind"] == "bus":
+            # A bar is wide enough for its name, up to 96 px, in the 10 px semibold face (5.2 px
+            # per character on average, and 10 px around the name).
+            assert item["width"] >= min(96, round(len(text) * 5.2) + 10), id_
+            assert item["label"]["width"] >= 76 and item["label"]["height"] >= 12, id_
+        else:
+            # Three lines: the name, the load, and the percentage of capacity.
+            assert item["label"]["height"] >= 36, id_
+            assert item["label"]["width"] >= 64, id_
 
 
 @pytest.mark.tc("TC-LAY-016")
