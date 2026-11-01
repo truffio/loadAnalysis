@@ -10,6 +10,7 @@ import re
 import socket
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 import pytest
@@ -614,6 +615,12 @@ def test_no_origin_header_is_allowed(client, method, path):
 # --- Limits (DD-028) -----------------------------------------------------------------------------
 
 
+def run_in_own_thread(coroutine):
+    """Playwright's sync API keeps an event loop running in the main thread during a full run."""
+    with ThreadPoolExecutor(1) as pool:
+        return pool.submit(asyncio.run, coroutine).result()
+
+
 def padded(doc, size):
     """A definition's JSON text padded with spaces to exactly `size` bytes."""
     text = json.dumps(doc).encode("utf-8")
@@ -661,7 +668,7 @@ def test_declared_length_is_refused_before_reading(client):
         "path": BASE,
         "headers": [(b"content-length", str(ela.api.BodyLimit.cap + 1).encode())],
     }
-    asyncio.run(ela.api.BodyLimit(never_called)(scope, receive, send))
+    run_in_own_thread(ela.api.BodyLimit(never_called)(scope, receive, send))
     assert sent[0]["status"] == 413
     assert reads == []
 
@@ -684,7 +691,7 @@ def test_stream_with_no_length_is_cut_off_while_reading():
         raise AssertionError("the application ran")
 
     scope = {"type": "http", "method": "POST", "path": BASE, "headers": []}
-    asyncio.run(ela.api.BodyLimit(never_called)(scope, receive, send))
+    run_in_own_thread(ela.api.BodyLimit(never_called)(scope, receive, send))
     assert sent[0]["status"] == 413
     assert json.loads(sent[1]["body"])["errors"]
     assert len(reads) == ela.api.BodyLimit.cap // chunk + 1

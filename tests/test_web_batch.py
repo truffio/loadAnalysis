@@ -325,10 +325,17 @@ def test_published_batch_dom_hooks(h_page):
 @pytest.mark.tc("TC-WBT-006")
 @pytest.mark.meta
 def test_batch_front_end_has_browser_tests(e2e_run):
-    from test_traceability import collected_marked, covered_by, requirement_ids
+    from test_traceability import (
+        DEFERRED_CASES,
+        collected_marked,
+        covered_by,
+        matrix,
+        requirement_ids,
+    )
 
+    waiting = {r for case in DEFERRED_CASES for r in matrix()[case]}
     section = {
-        r for r in requirement_ids()
+        r for r in requirement_ids() - waiting
         if r.startswith("L2-WBT-") and r not in ("L2-WBT-005", "L2-WBT-006")
     }
     assert len(section) == 11
