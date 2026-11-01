@@ -13,14 +13,14 @@ Verification cases for `docs/requirements.md`, written independently of the requ
 - **Mutations.** `M: $.path = value` changes a copy of the fixture before the test. `M: del $.path` removes the key. Everything else is unchanged.
 - **Tolerance.** Figures match within 1e-6 W, A or %, unless stated "exactly". Displayed values match after the display rounding.
 - **Negative numbers.** All program output, including the UI, CLI and exports, writes a negative number with ASCII hyphen-minus (U+002D). Hand working in this file may use −, but quoted output uses `-`.
-- **Warnings.** Under DD-025 a definition with no essential load always carries a warning at `$.loads`. Cases therefore check the warning they are about. A case asserting an empty warning list uses a fixture with one essential load.
+- **Warnings.** Under DD-025 a definition with no essential load always carries a warning at `$.loads`. Cases therefore check the warning they are about. Under DD-028 a definition with no scenarios carries a warning at `$.scenarios`. A case asserting an empty warning list uses a fixture with one essential load and one scenario.
 
 ### Names used by the cases
 
 Under DD-024 these names are binding interface requirements, restated in L2-VAL-031, L2-ENG-068, L2-ENG-069, L2-BAT-010, L2-LAY-019, L2-API-025, L2-API-026, L2-WIN-053 and L2-WBT-013. The tests use them directly.
 
-- **Validator.** `validate(doc)` in `ela.validate` gives `.errors`, `.warnings` (each with `path`, `message`) and `.definition` (`None` if rejected).
-- **Engine.** `analyse(defn, states)` in `ela.engine` gives `R`, with `R.verdict`, `R.overloads` (entries `element`, `band`, `demand_with_margin`, `capacity`), `R.config_errors`, `R.unpowered` (entries `id`, `name`, `bus`), `R.warnings`, `R.worst` (`element`, `band`, `margin_pct`), `R.checked` (element ids) and `R.islands`. `R.el[id]` is the element record: `.state`, `.energised`, and per band `.demand`, `.with_margin`, `.capacity`, `.margin_w`, `.margin_pct`. A bus adds `.own`, `.voltage`, `.current`. A source or TRU adds `.load_pct`. A TRU adds `.input`, `.output`. `D(X)` is shorthand for `R.el[X].demand` as a triple.
+- **Validator.** `validate(doc)` in `ela.validate` gives `.errors`, `.warnings` (each with `path`, `message`) and `.definition` (`None` if rejected). `parse_json(raw)` there takes bytes and gives the document and a list of errors, the document being `None` if there is any error.
+- **Engine.** `analyse(defn, states)` in `ela.engine` gives `R`, with `R.verdict`, `R.overloads` (entries `element`, `band`, `demand_with_margin`, `capacity`), `R.config_errors`, `R.unpowered` (entries `id`, `name`, `bus`), `R.warnings`, `R.worst` (`element`, `band`, `margin_pct`), `R.checked` (element ids) and `R.islands`. `R.el[id]` is the element record: `.state`, `.energised`, and per band `.demand`, `.with_margin`, `.capacity`, `.margin_w`, `.margin_pct`. A bus adds `.own`, `.voltage`, `.current`, `.fed_by`. A source or TRU adds `.load_pct`. A TRU adds `.input`, `.output`. `D(X)` is shorthand for `R.el[X].demand` as a triple.
 - **Batch.** `run_batch(defn)` in `ela.batch` gives one result per scenario with `scenario_id`, `name`, `result`, `worst_element`, `worst_band`, `smallest_margin_pct`, `overloads`, `configuration_errors`, `unpowered_essential`, the detail lists `overload_details`, `error_messages`, `unpowered_details`, and `warnings`.
 - **Layout.** `layout(defn)` in `ela.layout` gives `items` (`id`, `kind`, `x`, `y`, `width`, `height`, with `x`, `y` the top-left corner) and `connectors` (`from`, `to`, `points`).
 - **HTTP.** The analyse body is `{"states": {...}}`, and uploads are multipart with field `file`.
@@ -49,7 +49,7 @@ Under DD-024 these names are binding interface requirements, restated in L2-VAL-
 | TRU1 with margin | output × 1.10 | 1870 / 1496 / 935 |
 | TRU1 remaining | capacity − with margin | 4130 / 3504 / 3065 W, 68.83 / 70.08 / 76.63 % |
 
-**FX-SINGLE-E.** FX-SINGLE with LA `essential: true`. Valid, with an empty warning list.
+**FX-SINGLE-E.** FX-SINGLE with LA `essential: true` and scenario S1 `{}`. Valid, with an empty warning list.
 
 **FX-CHAIN.** G1 cap 20000 → AC1. Ties T12 (AC1–AC2), T23 (AC2–AC3). L1 on AC1: 100. L2 on AC2: 200. L3 on AC3: 300. By node balance T23 = 300, T12 = 200 + 300 = 500, AC1 demand = G1 = 100 + 500 = 600, AC2 demand = 500, AC3 demand = 300.
 
@@ -119,6 +119,10 @@ Hand results. S1: G1 = G2 = 1000/900/800, margin 1900 W 63.33 %, 1510 W 60.4 %, 
 
 **FX-ALLPASS.** FX-BATCH with only scenarios S1 and S2.
 
+**FX-LOOP(r, o).** `safety_margin` 0. GEN (`engine_generator`, id GEN) cap 5000 → A. Buses A, C, r and o. r has capacity 1000. Ties `T_A_r` (A–r), `T_r_C` (r–C), `T_C_o` (C–o), `T_o_A` (o–A). L on C: 2000. Nothing else is rated, so with only DD-004 the verdict depends on whether r or o has the lower id.
+
+**FX-BATMESH.** BAT1 cap 2000 → D1. BAT2 cap 1000 → D2. Ties T12 (D1–D2), T13 (D1–D3), T23 (D2–D3). L on D3: 900. BAT1 600 and BAT2 300 by DD-006. Breadth-first from BAT1 reaches D1, then D2 by T12 and D3 by T13, then BAT2 from D2, so T23 is left out. T13 = 900, T12 = 300 toward D1, `C_BAT1` = 600, `C_BAT2` = 300. D1 = 900, D2 = 300.
+
 **FX-BATCH12.** FX-BATCH with 12 scenarios, ids in this file order `Z01, A02, M03, B04, Y05, C06, X07, D08, W09, E10, V11, F12`, whose `states` cycle through S1 to S5.
 
 **FX-ROLES.** G1, G2 → AC1, AC2. APU → AC1, `C_APU` open. RAT_AC → ACM. BAT → DCB. Buses AC1, AC2 (main), ACE (essential), ACM (emergency), ACO (other), DC1 (main), DCE (essential), DCM (emergency), DCB (battery), DCO (other). Ties T12 (AC1–AC2) open, T1E (AC1–ACE), TEM (ACE–ACM) open, TEO (ACE–ACO), T_DE (DC1–DCE), T_EM (DCE–DCM), T_EB (DCE–DCB), T_EO (DCE–DCO). TRU1: AC1 → DC1, η 0.85, cap 5000. All sources cap 10000.
@@ -145,7 +149,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 **FX-FIVE.** `M: del $.meta.revision`. `M: $.loads[1].id = "LA"`. `M: $.loads[0].bus = "NOBUS"`. Swap `$.trus[0].input_bus` and `output_bus`. Add a `bus_tie` `TBAD` from AC1 to DC1.
 
-**FX-MANY.** FX-THREEERR plus these seven further faults on the same document. `M: del $.settings.safety_margin`. `M: $.loads[0].power.transient = -1`. `M: $.buses[0].voltage = 0`. Add a third load with id `LA`. Add a `bus_tie` `TBAD` from AC1 to DC1. Add scenario `{"id": "S1", "name": "n", "states": {"GHOST": "failed", "G1": "closed"}}`.
+**FX-MANY.** FX-THREEERR plus these seven further faults on the same document. `M: del $.settings.safety_margin`. `M: $.loads[0].power.transient = -1`. `M: $.buses[0].voltage = 0`. Add a third load with id `LA`. Add a `bus_tie` `TBAD` from AC1 to DC1. Replace the scenarios with `{"id": "S1", "name": "n", "states": {"GHOST": "failed", "G1": "closed"}}`.
 
 **FX-WARN.** `M: $.zzz = 1`, an unknown top-level key.
 
@@ -184,6 +188,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-MOD-023 | L2-MOD-029, L2-MOD-030 | L2 | Test |
 | TC-MOD-024 | L2-MOD-031, L2-MOD-032 | L2 | Test |
 | TC-MOD-025 | L2-MOD-033 | L2 | Test |
+| TC-MOD-026 | L2-MOD-034 | L2 | Test |
 | TC-VAL-001 | L2-VAL-001 | L2 | Test |
 | TC-VAL-002 | L2-VAL-002 | L2 | Test |
 | TC-VAL-003 | L2-VAL-002 | L2 | Test |
@@ -216,6 +221,10 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-VAL-030 | L2-VAL-033 | L2 | Test |
 | TC-VAL-031 | L2-VAL-032 | L2 | Test |
 | TC-VAL-032 | L2-VAL-031 | L2 | Test |
+| TC-VAL-033 | L2-VAL-034 | L2 | Test |
+| TC-VAL-034 | L2-VAL-001, L2-VAL-035 | L2 | Test |
+| TC-VAL-035 | L2-VAL-036 | L2 | Test |
+| TC-VAL-036 | L2-VAL-037 | L2 | Test |
 | TC-ENG-001 | L2-ENG-001 | L2 | Test |
 | TC-ENG-002 | L2-ENG-002 | L2 | Test |
 | TC-ENG-003 | L2-ENG-003 | L2 | Test |
@@ -245,6 +254,10 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-ENG-075 | L2-ENG-025 | L2 | Test |
 | TC-ENG-025 | L2-ENG-023, L2-ENG-025 | L2 | Test |
 | TC-ENG-026 | L2-ENG-026 | L2 | Test |
+| TC-ENG-078 | L2-ENG-070 | L2 | Test |
+| TC-ENG-079 | L2-ENG-071, L2-ENG-072 | L2 | Test |
+| TC-ENG-080 | L2-ENG-071, L2-ENG-073 | L2 | Test |
+| TC-ENG-083 | L2-ENG-021, L2-ENG-022 | L2 | Test |
 | TC-ENG-027 | L2-ENG-027 | L2 | Test |
 | TC-ENG-028 | L2-ENG-028 | L2 | Test |
 | TC-ENG-029 | L2-ENG-028 | L2 | Test |
@@ -286,6 +299,9 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-ENG-065 | L2-ENG-060 | L2 | Test |
 | TC-ENG-076 | L2-ENG-069 | L2 | Test |
 | TC-ENG-077 | L2-ENG-068 | L2 | Test |
+| TC-ENG-081 | L2-ENG-074 | L2 | Test |
+| TC-ENG-082 | L2-ENG-074 | L2 | Test |
+| TC-ENG-084 | L2-ENG-075 | L2 | Test |
 | TC-ENG-066 | L2-ENG-061 | L2 | Test |
 | TC-ENG-067 | L2-ENG-062 | L2 | Test |
 | TC-ENG-068 | L2-ENG-063 | L2 | Test |
@@ -326,6 +342,8 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-BAT-008 | L2-BAT-007 | L2 | Test |
 | TC-BAT-009 | L2-BAT-008 | L2 | Test |
 | TC-BAT-010 | L2-BAT-009 | L2 | Test |
+| TC-BAT-012 | L2-BAT-011 | L2 | Test |
+| TC-BAT-013 | L2-BAT-012 | L2 | Test |
 | TC-CLI-001 | L2-CLI-001 | L2 | Test |
 | TC-CLI-002 | L2-CLI-002 | L2 | Test |
 | TC-CLI-003 | L2-CLI-003, L2-CLI-004 | L2 | Test |
@@ -337,6 +355,9 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-CLI-009 | L2-CLI-010 | L2 | Test |
 | TC-CLI-010 | L2-CLI-011 | L2 | Test |
 | TC-CLI-011 | L2-CLI-012, L2-CLI-013 | L2 | Test |
+| TC-CLI-012 | L2-CLI-009, L2-CLI-014 | L2 | Test |
+| TC-CLI-013 | L2-CLI-011 | L2 | Test |
+| TC-CLI-014 | L2-CLI-008, L2-BAT-012 | L2 | Test |
 | TC-LAY-001 | L2-LAY-001 | L2 | Test |
 | TC-LAY-017 | L2-LAY-019 | L2 | Test |
 | TC-LAY-002 | L2-LAY-002 | L2 | Test |
@@ -355,6 +376,8 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-LAY-015 | L2-LAY-016, L2-LAY-017 | L2 | Test |
 | TC-LAY-016 | L2-LAY-018 | L2 | Test |
 | TC-LAY-018 | L2-LAY-018 | L2 | Test |
+| TC-LAY-019 | L2-LAY-004 | L2 | Test |
+| TC-LAY-020 | L2-LAY-020 | L2 | Test |
 | TC-API-001 | L2-API-001 | L2 | Test |
 | TC-API-002 | L2-API-002 | L2 | Test |
 | TC-API-003 | L2-API-003 | L2 | Test |
@@ -363,6 +386,12 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-API-006 | L2-API-005, L2-API-006 | L2 | Test |
 | TC-API-022 | L2-API-026 | L2 | Test |
 | TC-API-023 | L2-API-025 | L2 | Test |
+| TC-API-024 | L2-API-027 | L2 | Test |
+| TC-API-025 | L2-API-028 | L2 | Test |
+| TC-API-026 | L2-API-029 | L2 | Test |
+| TC-API-027 | L2-API-030 | L2 | Test |
+| TC-API-028 | L2-API-031 | L2 | Test |
+| TC-API-029 | L2-API-032 | L2 | Test |
 | TC-API-007 | L2-API-007 | L2 | Test |
 | TC-API-008 | L2-API-008 | L2 | Test |
 | TC-API-009 | L2-API-009 | L2 | Test |
@@ -426,6 +455,10 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-WIN-044 | L2-WIN-051 | L2 | Test |
 | TC-WIN-045 | L2-WIN-052 | L2 | Test |
 | TC-WIN-048 | L2-WIN-053 | L2 | Test |
+| TC-WIN-049 | L2-WIN-054 | L2 | Test |
+| TC-WIN-050 | L2-WIN-055 | L2 | Test |
+| TC-WIN-051 | L2-WIN-056 | L2 | Test |
+| TC-WIN-052 | L2-WIN-057 | L2 | Test |
 | TC-WBT-001 | L2-WBT-001 | L2 | Test |
 | TC-WBT-002 | L2-WBT-002 | L2 | Test |
 | TC-WBT-003 | L2-WBT-003 | L2 | Test |
@@ -438,6 +471,8 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-WBT-010 | L2-WBT-010, L2-WBT-011 | L2 | Test |
 | TC-WBT-011 | L2-WBT-012 | L2 | Test |
 | TC-WBT-012 | L2-WBT-013 | L2 | Test |
+| TC-WBT-013 | L2-WBT-014 | L2 | Test |
+| TC-WBT-014 | L2-WBT-015 | L2 | Test |
 | TC-DOC-001 | L2-DOC-001 | L2 | Test |
 | TC-DOC-002 | L2-DOC-002 | L2 | Test |
 | TC-DOC-003 | L2-DOC-003 | L2 | Test |
@@ -653,6 +688,12 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Steps:** Import `ela.model`.
 - **Expected:** `ela/model.py` exists and its definition model is a subclass of `pydantic.BaseModel`.
 
+#### TC-MOD-026 — Numbers are capped at 1e12
+
+- **Fixture:** FX-SINGLE, with `settings.bands.transient` `{}` and capacities on AC1 and `C_G1`
+- **Steps:** Set each of these in turn to 1e12, then just above it, then to an integer of 400 digits: `settings.safety_margin`, `duration_s`, a source capacity, `voltage`, `phases`, `engine` and `safety_margin`, a bus capacity, `voltage` and `phases`, a TRU capacity, a contactor capacity, a load `power`. Set `duration_s` and `engine` to −(1e12 + 1).
+- **Expected:** 1e12 is accepted. Each larger magnitude is one error at that path, and nothing is raised.
+
 ### C-VALID
 
 #### TC-VAL-001 — Malformed documents return errors and raise nothing
@@ -695,7 +736,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 - **Fixture:** None
 - **Steps:** Collect `pytest tests --collect-only -m "not meta"`. Map test marks to cases and cases to requirements. Separately run that selection in a subprocess.
-- **Expected:** Each of L2-VAL-007 to L2-VAL-030, L2-VAL-032 and L2-VAL-033 has at least one collected test, and the selection passes. The meta marker stops this case running itself.
+- **Expected:** Each of L2-VAL-007 to L2-VAL-030 and L2-VAL-032 to L2-VAL-037 has at least one collected test, and the selection passes. The meta marker stops this case running itself.
 
 #### TC-VAL-008 — One missing key gives one error at the parent path
 
@@ -847,6 +888,30 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Steps:** Call `ela.validate.validate` on each.
 - **Expected:** FX-SINGLE-E: empty `errors` and a `definition`. FX-THREEERR: `errors` entries each holding `path` and `message`, and `definition` is `None`.
 
+#### TC-VAL-033 — Repeated keys are errors at their paths
+
+- **Fixture:** FX-SINGLE as text with `safety_margin` written twice in `settings`, then the texts `{"a": {"b": 1, "b": 2}, "c": [{"d": 1}, {"d": 1, "e": 2, "d": 3}]}`, `{"a": {"b": 1, "b": 2}, "a": 3}` and `[{"id": 1}, {"id": 2}]`
+- **Steps:** Call `parse_json` on the bytes of each.
+- **Expected:** First: no document, one error at `$.settings.safety_margin`. Second: `$.a.b` and `$.c[1].d`. Third: `$.a` and `$.a.b`, so a repeat inside an overwritten value is found. Fourth: no error, as the key is in two objects.
+
+#### TC-VAL-034 — Loader takes a byte order mark and reports bad input at the root
+
+- **Fixture:** FX-SINGLE-E encoded as UTF-8 with and without a byte order mark. The bytes of `{not json`, `FF FE`, an empty file and 200000 × `[`. A document nested 500 objects deep
+- **Steps:** Call `parse_json` on each.
+- **Expected:** Both encodings give the same document, valid with no warning. Each bad input gives no document and one error at `$`, containing "not valid JSON". The deep document parses with no error.
+
+#### TC-VAL-035 — Crew switch id is reserved
+
+- **Fixture:** FX-ALLKINDS with DCB `crew_switch` true. For each of source, bus, TRU, contactor and load, one element has id `DCB_switch`
+- **Steps:** Validate each. Then add a load `AC1_switch` to FX-ALLKINDS, where AC1 has no crew switch.
+- **Expected:** Each gives an error at that element's `id`, naming `DCB_switch` and the crew switch. The second is valid.
+
+#### TC-VAL-036 — No scenarios warns at $.scenarios
+
+- **Fixture:** FX-SINGLE, FX-SINGLE-E
+- **Steps:** Validate each.
+- **Expected:** FX-SINGLE: one warning at `$.scenarios`, and a usable definition. FX-SINGLE-E: none.
+
 ### C-ENGINE
 
 #### TC-ENG-001 — State map over defaults
@@ -905,9 +970,9 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 #### TC-ENG-009 — Contactor energisation
 
-- **Fixture:** FX-CHAIN
-- **Steps:** Analyse with `{"T23": "open"}`, then with `{"C_G1": "open"}`. Add a second live source G2 → AC3 and analyse with `{"T23": "open"}`.
-- **Expected:** T12 closed with live ends is energised. T12 with two dead ends is not. T23 open with two live ends is not.
+- **Fixture:** FX-CHAIN, then FX-SRCBRIDGE
+- **Steps:** Analyse FX-CHAIN with `{"T23": "open"}`, then with `{"C_G1": "open"}`. Add a second live source G2 → AC3 and analyse with `{"T23": "open"}`. Analyse FX-SRCBRIDGE with `{}`, then with `{"G1": "failed"}`.
+- **Expected:** T12 closed with live ends is energised. T12 with two dead ends is not. T23 open with two live ends is not. FX-SRCBRIDGE: `C_G2` is closed to a failed generator on live AC1, so it is energised with D(`C_G2`) = 0. With G1 failed too, AC1 is dead and `C_G2` is not energised.
 
 #### TC-ENG-010 — Own-load power is a lossless sum
 
@@ -1005,11 +1070,11 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Steps:** Analyse each with `{}`.
 - **Expected:** FX-RING: one `meshed_island` warning naming T23, verdict PASS. FX-CHAIN: no such warning. `R.overloads` and verdict do not depend on the warning.
 
-#### TC-ENG-075 — No mesh warning on dead or paralleled rings
+#### TC-ENG-075 — Mesh warning on a paralleled ring, none on a dead ring
 
-- **Fixture:** FX-RING, then FX-RING plus G2 cap 20000 → AC3
+- **Fixture:** FX-RING, then FX-RING plus G2 cap 20000 → AC3, with T12 capacity 1 and AC2 capacity 100000
 - **Steps:** Analyse FX-RING with `{"G1": "failed"}` and `{"C_G1": "open"}`. Analyse the second definition with `{}`.
-- **Expected:** No `meshed_island` warning in any. On the dead ring AC1, AC2 and AC3 are in one island with no source. The second has one error containing "AC sources paralleled", naming G1 and G2.
+- **Expected:** No `meshed_island` warning on the dead ring, where AC1, AC2 and AC3 are in one island with no source. The second has one `meshed_island` warning, naming T23, and one error containing "AC sources paralleled", naming G1 and G2. By DD-005 D(T12) and D(T23) are null and D(AC2) = 200, so nothing is overloaded and DD-026 does not apply.
 
 #### TC-ENG-025 — Loop through a source with two contactors
 
@@ -1261,7 +1326,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 - **Fixture:** FX-SINGLE
 - **Steps:** Analyse with `{}`. Read the attribute names of `el[G1]`, `el[AC1]`, `el[TRU1]`, `el[C_G1]`.
-- **Expected:** All hold exactly `state`, `energised`, `demand`, `with_margin`, `capacity`, `margin_w`, `margin_pct`, plus: G1 `load_pct`; AC1 `own`, `voltage`, `current`; TRU1 `load_pct`, `input`, `output`; `C_G1` nothing more.
+- **Expected:** All hold exactly `state`, `energised`, `demand`, `with_margin`, `capacity`, `margin_w`, `margin_pct`, plus: G1 `load_pct`; AC1 `own`, `voltage`, `current`, `fed_by`; TRU1 `load_pct`, `input`, `output`; `C_G1` nothing more.
 
 #### TC-ENG-077 — analyse entry point and result fields
 
@@ -1310,6 +1375,48 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Fixture:** None
 - **Steps:** From the collected tests with marks, map each of the 9 topics to the requirements that define it. Run `pytest tests -m "not meta"` in a subprocess.
 - **Expected:** At least one collected test per topic, and the selection passes.
+
+#### TC-ENG-078 — A rated element on a loop takes the island total
+
+- **Fixture:** FX-LOOP(B, Z), FX-LOOP(Z, B), each also with `T_A_r` capacity 1500 and r's capacity removed. FX-RING plus TRU1: AC2 → DC1, η 0.80, cap 5000, LD on DC1: 800/400/200, with AC1 and T23 capacity 100000. FX-BATMESH with D3 capacity 500 and margin 0
+- **Steps:** Analyse each with `{}`.
+- **Expected:** FX-LOOP both ways: verdict FAIL, overload on bus r in all three bands, D(r) = 2000, current 2000 ÷ 345, margin −100 %. With the tie rated: overload on `T_A_r` in all three bands, D = 2000. FX-RING: TRU input 1000/500/250, so D(AC1) = D(T23) = 600 + input = 1600/1100/850, and AC1 own stays 100. FX-BATMESH: D(D3) = 900, overloaded.
+
+#### TC-ENG-079 — What is not rated or not on a loop keeps its flow
+
+- **Fixture:** FX-RING with AC1 capacity 100000. FX-RING plus AC4 capacity 100000, T34 (AC3–AC4) capacity 100000, `C_G1` capacity 100000, L4 on AC4: 400. FX-SRCBRIDGE with AC1 capacity 100000 and T_AB (AC1–AC2) open
+- **Steps:** Analyse each with `{}`, and the third also with `{"G1": "failed", "G2": "operative"}`.
+- **Expected:** First: D(AC1) = 600, D(AC2) = 200, D(AC3) = 300, D(T12) = 200, D(T13) = 300, D(T23) = 0. Second: D(T34) = D(AC4) = 400, D(`C_G1`) = 1000, and the warning names T23 alone. Third: D(AC1) = 300, and no `meshed_island` warning, as an open tie closes no loop and a failed source is not a path.
+
+#### TC-ENG-080 — The warning names each rated element on a loop
+
+- **Fixture:** FX-RING with AC2, T12 and T23 capacity 100000. Two parallel ties TA and TB, AC1–AC2, capacity 500, G1 → AC1, L2 on AC2: 200
+- **Steps:** Analyse each with `{}`.
+- **Expected:** First: warnings for AC2, T12 and T23, one each, naming that element. D(T23) = 600, and verdict PASS. Second: both ties are on the loop, D(TA) = D(TB) = 200, and the warnings name TA and TB.
+
+#### TC-ENG-083 — Exact flows on a multi-source meshed island
+
+- **Fixture:** FX-BATMESH
+- **Steps:** Analyse with `{}`.
+- **Expected:** D(BAT1) = D(`C_BAT1`) = 600. D(BAT2) = D(`C_BAT2`) = D(T12) = 300. D(T13) = 900, D(T23) = 0. D(D1) = 900, D(D2) = 300. The warning names T23. A tree rooted at the highest id would keep T23 and leave out T13.
+
+#### TC-ENG-081 — Fed by
+
+- **Fixture:** FX-SINGLE, FX-TWO-TRU, FX-BAT, FX-BAT2, FX-TRU-RAT, FX-PAR, FX-CREW
+- **Steps:** Analyse each with `{}`. Then FX-SINGLE and FX-BAT with `{"G1": "failed"}`, and FX-CREW with `{"DCS": "off"}`.
+- **Expected:** FX-SINGLE: AC1 [G1], DC1 [TRU1], then both empty. FX-TWO-TRU: DC1 [TRU1, TRU2]. FX-BAT: DC1 and DCB [TRU1], as the idle battery feeds nothing, then AC1 empty and both DC buses [BAT]. FX-BAT2: [BAT1, BAT2]. FX-TRU-RAT: [RAT_DC, TRU1]. FX-PAR: AC1 and AC2 [G1, G2], DC1 [TRU1]. FX-CREW: DCS and DCX [BAT], with the switch off.
+
+#### TC-ENG-082 — A DC bus fed through ties below dead TRUs
+
+- **Fixture:** FX-SAMPLE
+- **Steps:** Analyse with all five AC source contactors `open`, then with `BATC` `open` as well.
+- **Expected:** First: DC ESS is energised with `fed_by` [BAT], DC BAT too, every TRU is de-energised, and DC BUS 1, DC BUS 2 and each AC bus are dead with `fed_by` []. Second: every bus is dead with `fed_by` [].
+
+#### TC-ENG-084 — Figures stay finite at the limits
+
+- **Fixture:** FX-SINGLE with LA and LD at 1e12
+- **Steps:** Analyse with, in turn, G1 capacity 1e-300, AC1 capacity 1e-300, AC1 voltage 1e-300, TRU1 efficiency 1e-300, `safety_margin` 1e12. Serialise each result with NaN and infinity refused.
+- **Expected:** Each gives FAIL with a worst element, and serialises.
 
 ### C-SAMPLE
 
@@ -1513,6 +1620,18 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Steps:** Serialise S3 and S4 to CSV and JSON.
 - **Expected:** `worst_element`, `worst_band` and `smallest_margin_pct` are empty CSV cells, and JSON `null`.
 
+#### TC-BAT-012 — Text cells are spreadsheet-safe
+
+- **Fixture:** G1 cap 1000 → AC1, L on AC1: 2000, for each of `=`, `+`, `-` and `@` as `c`: source id `cgen`, scenario id `cid` and name `c1+1`. Then FX-BATCH
+- **Steps:** Serialise to CSV and JSON, and read the CSV back.
+- **Expected:** `scenario_id`, `name` and `worst_element` start with `'c`. `smallest_margin_pct` is `-120` and `overloads` `3`, with no prefix. The JSON keeps the text unchanged. FX-BATCH: plain text is unchanged and S5's margin stays `-46.67`.
+
+#### TC-BAT-013 — Any finite margin can be exported
+
+- **Fixture:** None, then FX-MARGIN with G1 capacity 1e-300
+- **Steps:** Call `format_pct` with -1e26, 1e60 and -1e282. Export the second to CSV and JSON.
+- **Expected:** The whole number in digits each time, with no error. The CSV margin is below -1e279.
+
 ### C-CLI
 
 #### TC-CLI-001 — Both command forms
@@ -1525,7 +1644,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 - **Fixture:** FX-BATCH, FX-RING
 - **Steps:** Run `ela batch` on FX-BATCH, splitting each standard output line on tabs. Run it on FX-RING and read standard error.
-- **Expected:** FX-BATCH: 5 lines of 9 tab-separated fields in column order, with values from the FX-BATCH table. S2 reads `S2`, `G1 lost`, `PASS`, `G2`, `continuous`, `12`, `0`, `0`, `0`. S3 and S4 show `—` for worst element, band and margin. S5 keeps its comma and quotes in one field, and its margin is `-46.67`, with ASCII hyphen-minus. Percentages have at most 2 decimals. FX-RING: one line on standard output, and standard error holds one line with `meshed_island` naming T23.
+- **Expected:** FX-BATCH: 5 lines of 9 tab-separated fields in column order, with values from the FX-BATCH table. S2 reads `S2`, `G1 lost`, `PASS`, `G2`, `continuous`, `12`, `0`, `0`, `0`. S3 and S4 show `—` for worst element, band and margin. S5 keeps its comma and quotes in one field, and its margin is `-46.67`, with ASCII hyphen-minus. Percentages have at most 2 decimals. FX-RING: one line on standard output, and standard error holds one line with `meshed_island` naming T23, plus the DD-025 warning line at `$.loads`, as FX-RING has no essential load.
 
 #### TC-CLI-003 — Export options
 
@@ -1581,6 +1700,24 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Steps:** Parse `pyproject.toml`. Run `uv sync --locked`.
 - **Expected:** `requires-python` is `>=3.12`. `pyproject.toml` and `uv.lock` exist, and the command exits 0.
 
+#### TC-CLI-012 — Byte order mark and repeated keys on the command line
+
+- **Fixture:** FX-ALLPASS saved with a byte order mark. FX-ALLPASS as text with `safety_margin` written twice
+- **Steps:** Run `ela batch` on each.
+- **Expected:** First: exit code 0 and 2 lines. Second: exit code 2, nothing on standard output, and standard error starts `$.settings.safety_margin: `, with no traceback.
+
+#### TC-CLI-013 — No scenarios is a warning
+
+- **Fixture:** FX-SINGLE-E with `scenarios` `[]`
+- **Steps:** Run `ela batch`.
+- **Expected:** Exit code 0, nothing on standard output, and a `warning: $.scenarios: ` line on standard error.
+
+#### TC-CLI-014 — An extreme definition gives a clean run
+
+- **Fixture:** FX-SINGLE-E with G1 transient capacity 1e-300, TRU1 efficiency 1e-300, LD 1e12
+- **Steps:** Run `ela batch` with `--csv` and `--json`.
+- **Expected:** Exit code 1, no traceback, both files written, and FAIL in the third field.
+
 ### C-LAYOUT
 
 #### TC-LAY-001 — Layout depends on the definition alone
@@ -1615,15 +1752,15 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 #### TC-LAY-005 — DC bus role order
 
-- **Fixture:** FX-SAMPLE, FX-ROLES
+- **Fixture:** FX-SAMPLE, FX-ROLES, and four batteries, each feeding its own untied bus: `D_MAIN` (role `main`), `D_ESS` (`essential`), `D_EMER` (`emergency`), `D_BAT` (`battery`)
 - **Steps:** Compare `y` of DC buses.
-- **Expected:** Sample: DC BUS 1 ≤ DC ESS ≤ DC BAT. FX-ROLES: DC1 ≤ DCE ≤ each of DCM, DCB, DCO.
+- **Expected:** Sample: DC BUS 1 ≤ DC ESS ≤ DC BAT. FX-ROLES: DC1 < DCE < each of DCM, DCB, DCO. Untied buses: `D_MAIN` < `D_ESS` < each of `D_EMER`, `D_BAT`.
 
 #### TC-LAY-006 — Source layer order
 
-- **Fixture:** FX-REVERSE
+- **Fixture:** FX-REVERSE, then FX-ENG(3) with the `engine` of G1, G2, G3 set to 3, 1, 2
 - **Steps:** Read `x` of the source items.
-- **Expected:** G1 < G2 < APU < RAT_AC < BAT.
+- **Expected:** FX-REVERSE: G1 < G2 < APU < RAT_AC < BAT. Second: G2 < G3 < G1, engine number and not id order.
 
 #### TC-LAY-007 — Any number of engines
 
@@ -1691,6 +1828,18 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Steps:** Open at the initial view. Measure `#schematic`, and read each non-bus item's rendered size.
 - **Expected:** `#schematic` measures at least 1000 × 560 px, and every non-bus item's rendered width and height are at least 16 px.
 
+#### TC-LAY-019 — Reversed TRU contactors keep their rows
+
+- **Fixture:** FX-SAMPLE and its stand-ins, with `from` and `to` swapped on every `tru` contactor
+- **Steps:** Validate, and for each TRU compare `y`.
+- **Expected:** Valid. Input contactor `y` < TRU `y` < output contactor `y`, as the bus joined sets the role.
+
+#### TC-LAY-020 — Connectors sharing a line end on one node
+
+- **Fixture:** 62 seeded random topologies, including seeds 484 and 496, and every definition held to the 50-item rules
+- **Steps:** `layout` each. For each pair of connectors, look for a stretch along one line.
+- **Expected:** Each such pair has a common end item.
+
 ### C-API
 
 #### TC-API-001 — List definitions by file stem
@@ -1749,9 +1898,9 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 #### TC-API-008 — Path-traversal, empty and reserved file names on upload
 
-- **Fixture:** H-CLIENT, H-DEFS. Upload FX-SINGLE under each of `../../evil name.json`, `..\..\evil2.json`, `/abs/evil3.json`, then `.json`, `../.json`, `nul.json`, `NUL.json`, `con.json`, `COM1.json`, `lpt9.json`
+- **Fixture:** H-CLIENT, H-DEFS. Upload FX-SINGLE under each of `../../evil name.json`, `..\..\evil2.json`, `/abs/evil3.json`, then `.json`, `../.json`, `nul.json`, `NUL.json`, `con.json`, `COM1.json`, `lpt9.json`, `é.json`, `__.json`, `日本語.json`
 - **Steps:** `POST /api/definitions` for each. List H-DEFS and its parent.
-- **Expected:** The first three give 201, stored as `evil_name.json`, `evil2.json` and `evil3.json`, each matching `^[A-Za-z0-9_-]+\.json$` inside H-DEFS. The rest give 422, with empty or Windows-reserved stems in any case, and store nothing. Nothing is written outside H-DEFS.
+- **Expected:** The first three give 201, stored as `evil_name.json`, `evil2.json` and `evil3.json`, each matching `^[A-Za-z0-9_-]+\.json$` inside H-DEFS. The rest give 422, with empty, Windows-reserved or underscore-only stems in any case, a message saying the name is not usable, and nothing stored. Nothing is written outside H-DEFS.
 
 #### TC-API-009 — Name collisions
 
@@ -1830,6 +1979,42 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Fixture:** H-CLIENT
 - **Steps:** List `app.routes` under `/api`.
 - **Expected:** Exactly the 6 of `docs/spec.md` §7.2, and none uses `PUT`, `PATCH` or `DELETE`.
+
+#### TC-API-024 — Only local hosts are served
+
+- **Fixture:** H-CLIENT, H-DEFS, then H-SERVER
+- **Steps:** Send requests with `Host` `localhost`, `localhost:8000`, `127.0.0.1:8000`, `[::1]`, `[::1]:8000`, `LOCALHOST`. On each of the six routes, `/` and `/app.js`, send `evil.example`, `evil.example:8000`, `localhost.evil.example`, `127.0.0.1.evil.example`, `[::2]:8000`, `[::1].evil.example`, `0.0.0.0:8000` and an empty value. Repeat one refusal on H-SERVER.
+- **Expected:** The local names are served. Each other value gives 400 in the JSON error shape.
+
+#### TC-API-025 — A non-local Origin is refused
+
+- **Fixture:** H-CLIENT, H-DEFS
+- **Steps:** Run a batch with `Origin` `http://127.0.0.1:8000`, `http://localhost:5173`, `http://[::1]:8000`, `https://localhost`. On each of the six routes, `/` and `/app.js`, send `https://evil.example`, `http://127.0.0.1.evil.example`, `http://localhost.evil.example:8000`, `http://localhost@evil.example`, `http://[::2]:8000`, `null`, `file://`, `ftp://localhost`. Send the read routes with no `Origin`.
+- **Expected:** The local origins and no origin are served. Each other value gives 403 in the JSON error shape, and nothing is stored.
+
+#### TC-API-026 — Bodies over 10 MB give 413
+
+- **Fixture:** H-CLIENT, H-DEFS. FX-SINGLE padded with spaces to exactly 10,000,000 bytes, and to one byte more
+- **Steps:** Upload each. Post `{"states": {}}` padded the same way to the analyse route. Drive the body limit with a `Content-Length` over the cap and a counting `receive`. Drive it with no length and an endless stream of 1 MB chunks. Post 11 MB of chunks through the client with no length.
+- **Expected:** At the limit: 201 and 200. Over it: 413 in the JSON error shape, with nothing stored. The declared length is refused with no read. The stream stops at the first chunk past the cap, and the application never runs. The chunked post gives 413.
+
+#### TC-API-027 — Analysis runs off the event loop
+
+- **Fixture:** H-CLIENT, H-DEFS, with `ela.api.analyse` wrapped to record the running event loop
+- **Steps:** Inspect the analyse, definition, batch and upload routes. Post to the analyse route.
+- **Expected:** None is a coroutine function, and no event loop is running in the thread that analyses.
+
+#### TC-API-028 — Filesystem failures give the JSON error shape
+
+- **Fixture:** H-CLIENT. `ELA_DEFINITIONS_DIR` pointing at a file. Then H-DEFS with the upload's write failing part-way with `No space left on device`
+- **Steps:** Upload FX-SINGLE each time.
+- **Expected:** 500 with `errors` and `warnings`, each with path and message. The second names the failure and leaves no file.
+
+#### TC-API-029 — One loader for uploads, stored files and analyse bodies
+
+- **Fixture:** H-CLIENT, H-DEFS. The text `{"meta": {"aircraft": "A", "aircraft": "B"}}`. FX-SINGLE and `{"states": {}}` with a byte order mark. FX-SINGLE with capacity and efficiency 1e-300. A stored file with `"aircraft": 1e999`
+- **Steps:** Upload, store and open the repeated-key text. Post `{"states": {"GEN1": "failed", "GEN1": "operative"}}` to the analyse route. Post and upload the byte order mark forms. Analyse the extreme fixture. Upload FX-SINGLE with a load of 1e13. List the definitions.
+- **Expected:** Each repeated key gives 422 at its path, and the upload stores nothing. The byte order mark forms give 200 and 201. The extreme fixture gives 200 with FAIL. The load of 1e13 gives 422. The list has the stored file with a null `aircraft`.
 
 ### C-WEBINT
 
@@ -1914,7 +2099,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 #### TC-WIN-014 — A drag is not a click
 
 - **Fixture:** H-PAGE, FX-SAMPLE
-- **Steps:** Drag 100 px starting on a generator and ending on empty canvas. Drag 100 px starting on empty canvas and ending on a generator. Press on the generator and release 3 px away.
+- **Steps:** Drag 100 px starting on a generator and ending on empty canvas. Then a drag starting on empty canvas and ending on a generator: a pan moves the drawing with the pointer, so a real mouse cannot produce this pan-then-hit path, and the case sends synthetic pointer events instead, with the release on the generator. Press on the generator and release 3 px away.
 - **Expected:** No analyse request and no state change for both drags. The 3 px press and release toggles the generator, with one analyse request.
 
 #### TC-WIN-015 — Readable at 1366 × 768
@@ -2045,9 +2230,9 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 #### TC-WIN-036 — Load scenario
 
-- **Fixture:** H-PAGE, FX-BATCH
-- **Steps:** Read `#scenario-select`. Click G2 to fail it, and choose S5.
-- **Expected:** 5 entries by name. G2 is `operative` again, as S5 does not list it. Verdict FAIL as in the batch, and T13 is `closed`.
+- **Fixture:** H-PAGE, FX-BATCH, FX-SAMPLE
+- **Steps:** Read `#scenario-select`. Click G2 to fail it, and choose S5. Open the sample and choose S07, then S13.
+- **Expected:** 5 entries by name. G2 is `operative` again, as S5 does not list it. Verdict FAIL, as hand-worked in the FX-BATCH table, and T13 is `closed`. The sample's verdicts are those in `tests/data/generic_twin_expected.json`: S07 PASS, S13 FAIL.
 
 #### TC-WIN-046 — A schematic click clears a stale scenario selection
 
@@ -2120,6 +2305,30 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Fixture:** H-PAGE, FX-SAMPLE
 - **Steps:** Open the sample. Count each id. Walk the layout items.
 - **Expected:** `definition-select`, `definition-upload`, `band-select`, `scenario-select`, `reset`, `status-verdict`, `status-list`, `tooltip`, `message`, `warnings` and `schematic` each exist exactly once. Each layout item has a `[data-id]` group with a `data-state` attribute. Each energised bus has a `[data-label]`.
+
+#### TC-WIN-049 — Tooltip shows what feeds a bus
+
+- **Fixture:** H-PAGE, FX-SAMPLE, with all five AC source contactors opened on the schematic
+- **Steps:** Hover DC ESS, then DC BUS 1.
+- **Expected:** DC ESS: a "Fed by" line reading BAT. DC BUS 1 is dead, and shows no such line.
+
+#### TC-WIN-050 — A failed analysis shows Not analysed
+
+- **Fixture:** H-PAGE, FX-SINGLE, with the analyse route failing on request
+- **Steps:** Open the fixture, then click G1 while the route fails. Let the route recover and click G1 again.
+- **Expected:** `#status-verdict` reads "Not analysed" and the schematic is marked stale. After the recovery the verdict is back and the mark is gone.
+
+#### TC-WIN-051 — Status panel and tooltips stay in W
+
+- **Fixture:** H-PAGE, FX-BATCH
+- **Steps:** Choose S5. Read the status panel, the tooltip of G1 and the bus label of AC1.
+- **Expected:** The panel and tooltip show 3300 W and 3000 W, with no kW. The bus label follows the kW rule of L2-WIN-025.
+
+#### TC-WIN-052 — Selects have a placeholder
+
+- **Fixture:** H-PAGE, FX-BATCH
+- **Steps:** Load the page with no definition open. Read `#definition-select`. Open the fixture and read `#scenario-select`.
+- **Expected:** Each shows a placeholder option that is not a definition or scenario.
 
 ### C-WEBBAT
 
@@ -2194,6 +2403,18 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Fixture:** H-PAGE, FX-SAMPLE
 - **Steps:** Open the sample. Count each id.
 - **Expected:** `run-batch`, `batch-table`, `export-csv` and `export-json` each exist exactly once.
+
+#### TC-WBT-013 — Table shows band labels, exports keep band keys
+
+- **Fixture:** H-PAGE, FX-BATCH
+- **Steps:** Run the batch. Read S5's worst band cell. Export CSV and JSON.
+- **Expected:** The cell reads Transient. Both exports hold `transient`.
+
+#### TC-WBT-014 — Batch detail stays in W
+
+- **Fixture:** H-PAGE, FX-BATCH
+- **Steps:** Run the batch. Expand S5.
+- **Expected:** Demand with margin and capacity show in W, as 3300 W and 3000 W for G1, with no kW.
 
 ### C-DOCS
 
@@ -2523,7 +2744,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 - **Fixture:** FX-SAMPLE
 - **Steps:** For every scenario and band with no paralleled island, check power balance. Compare with `tests/data/generic_twin_expected.json`.
-- **Expected:** Sum of live source demand = sum of bus own power + sum of (TRU input − output), within 1 W. Every checked element obeys `demand × (1 + margin) ≤ capacity` exactly when it is not listed as overloaded. All recorded demands and capacities match within 1 W.
+- **Expected:** Sum of live source demand = sum of bus own power + sum of (TRU input − output), within 1e-6 W. Every checked element obeys `demand × (1 + margin) ≤ capacity` exactly when it is not listed as overloaded. All recorded demands and capacities match within 1e-6 W.
 
 #### TC-ACC-004 — Exploring a failure on the schematic
 

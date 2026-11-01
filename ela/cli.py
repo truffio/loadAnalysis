@@ -5,12 +5,11 @@ Standard output holds one tab-separated line per scenario. Everything else goes 
 """
 
 import argparse
-import json
 import sys
 
 from ela.batch import run_batch, summary_cells, write_csv, write_json
 from ela.format import NULL_TEXT
-from ela.validate import validate
+from ela.validate import parse_json, validate
 
 EXIT_PASS, EXIT_FAIL, EXIT_INVALID = 0, 1, 2
 
@@ -38,20 +37,25 @@ def _cell(text: str) -> str:
     return _one_line(text) if text else NULL_TEXT
 
 
+def _rejected(issues) -> int:
+    for issue in issues:
+        print(f"{issue.path}: {_one_line(issue.message)}", file=sys.stderr)
+    return EXIT_INVALID
+
+
 def _batch(args) -> int:
     try:
-        with open(args.path, encoding="utf-8") as f:
-            doc = json.load(f)
+        with open(args.path, "rb") as f:
+            raw = f.read()
     except OSError as exc:
         return _error(f"cannot read {args.path}: {exc.strerror or exc}")
-    except (ValueError, RecursionError) as exc:  # bad UTF-8 and bad JSON are both ValueError
-        return _error(f"{args.path} is not valid JSON: {exc}")
+    doc, problems = parse_json(raw)
+    if problems:
+        return _rejected(problems)
 
     validation = validate(doc)
     if validation.errors:
-        for issue in validation.errors:
-            print(f"{issue.path}: {_one_line(issue.message)}", file=sys.stderr)
-        return EXIT_INVALID
+        return _rejected(validation.errors)
     for issue in validation.warnings:
         print(f"warning: {issue.path}: {_one_line(issue.message)}", file=sys.stderr)
 

@@ -198,6 +198,14 @@ def test_failed_source_does_not_bridge_buses():
 
 
 @pytest.mark.tc("TC-ENG-009")
+def test_closed_contactor_to_a_failed_generator_on_a_live_bus_is_energised():
+    result = run(fx("FX-SRCBRIDGE"))
+    assert energised(result, "G2", "AC1", "C_G2") == [False, True, True]
+    assert D(result, "C_G2") == near(0)
+    assert energised(run(fx("FX-SRCBRIDGE"), {"G1": "failed"}), "AC1", "C_G2") == [False, False]
+
+
+@pytest.mark.tc("TC-ENG-009")
 def test_contactor_energisation():
     assert run(fx("FX-CHAIN"), {"T23": "open"}).el["T12"].energised is True
     assert run(fx("FX-CHAIN"), {"C_G1": "open"}).el["T12"].energised is False
@@ -389,6 +397,34 @@ def test_tie_with_flow_away_from_the_root():
     assert D(result, "DC2") == near(600)
 
 
+@pytest.mark.tc("TC-ENG-083")
+def test_exact_flows_on_a_multi_source_meshed_island():
+    doc = definition(
+        [bat("BAT1", 2000), bat("BAT2", 1000)],
+        [dc("D1"), dc("D2"), dc("D3")],
+        [],
+        [
+            c("BAT1", "D1"),
+            c("BAT2", "D2"),
+            tie("T12", "D1", "D2"),
+            tie("T13", "D1", "D3"),
+            tie("T23", "D2", "D3"),
+        ],
+        [load("L", "D3", 900)],
+    )
+    result = run(doc)
+    assert D(result, "BAT1") == near(600)
+    assert D(result, "BAT2") == near(300)
+    assert D(result, "C_BAT1") == near(600)
+    assert D(result, "C_BAT2") == near(300)
+    assert D(result, "T12") == near(300)
+    assert D(result, "T13") == near(900)
+    assert D(result, "T23") == near(0)
+    assert D(result, "D1") == near(900)
+    assert D(result, "D2") == near(300)
+    assert [w.element for w in meshed(result)] == ["T23"]
+
+
 @pytest.mark.tc("TC-ENG-022")
 def test_ring_spanning_tree():
     first = run(fx("FX-RING"))
@@ -473,9 +509,17 @@ def test_no_mesh_warning_on_a_dead_ring(states):
 
 
 @pytest.mark.tc("TC-ENG-075")
-def test_no_mesh_warning_on_a_paralleled_ring():
-    result = run(add_source(fx("FX-RING"), gen(2, 20000), "AC3"))
-    assert meshed(result) == []
+def test_mesh_warning_on_a_paralleled_ring():
+    doc = add_source(fx("FX-RING"), gen(2, 20000), "AC3")
+    find(doc, "T12")["capacity"] = tri(1)  # no flow is attributed, so DD-026 has nothing to check
+    find(doc, "AC2")["capacity"] = tri(100000)
+    result = run(doc)
+    assert [w.element for w in meshed(result)] == ["T23"]
+    assert "T23" in meshed(result)[0].message
+    assert D(result, "T12") == (None, None, None)
+    assert D(result, "T23") == (None, None, None)
+    assert D(result, "AC2") == near(200)  # DD-005: own loads alone, not the island total
+    assert result.overloads == []
     assert len(result.config_errors) == 1
     message = result.config_errors[0]
     assert "AC sources paralleled" in message
@@ -492,6 +536,162 @@ def test_loop_through_a_source_with_two_contactors():
     assert D(result, "C1A") == near(300)
     assert D(result, "C1B") == near(500)
     assert D(result, "T_AB") == near(0)
+
+
+def ring_with_two_routes(rated, other, tie_capacity=None):
+    """GEN feeds A. Ties A-r, r-C, C-o, o-A. 2000 W on C, margin 0, bus r capped at 1000 W."""
+    generator = {**gen(1, 5000), "id": "GEN", "name": "GEN"}
+    ties = [
+        tie(f"T_A_{rated}", "A", rated),
+        tie(f"T_{rated}_C", rated, "C"),
+        tie(f"T_C_{other}", "C", other),
+        tie(f"T_{other}_A", other, "A"),
+    ]
+    if tie_capacity is not None:
+        ties[0]["capacity"] = tri(tie_capacity)
+    return definition(
+        [generator],
+        [ac("A"), ac("C"), ac(rated, capacity=1000), ac(other)],
+        [],
+        [c("GEN", "A"), *ties],
+        [load("L", "C", 2000)],
+        margin=0,
+    )
+
+
+@pytest.mark.tc("TC-ENG-078")
+@pytest.mark.parametrize("rated, other", [("B", "Z"), ("Z", "B")])
+def test_rated_bus_on_a_loop_is_checked_against_the_island_total(rated, other):
+    result = run(ring_with_two_routes(rated, other))
+    assert result.verdict == "FAIL"
+    assert overloads(result) == {(rated, band) for band in BANDS}
+    assert D(result, rated) == near(2000)
+    assert triple(result.el[rated].current) == near(2000 / 345)
+    assert triple(result.el[rated].margin_pct) == near(-100)
+
+
+@pytest.mark.tc("TC-ENG-078")
+def test_swapping_ids_gives_identical_verdicts():
+    first = run(ring_with_two_routes("B", "Z"))
+    second = run(ring_with_two_routes("Z", "B"))
+    assert first.verdict == second.verdict == "FAIL"
+    assert [(o.band, o.demand_with_margin) for o in first.overloads] == [
+        (o.band, o.demand_with_margin) for o in second.overloads
+    ]
+    assert first.worst.margin_pct == second.worst.margin_pct == -100
+
+
+@pytest.mark.tc("TC-ENG-078")
+@pytest.mark.parametrize("rated, other", [("B", "Z"), ("Z", "B")])
+def test_rated_contactor_on_a_loop_is_checked_against_the_island_total(rated, other):
+    doc = ring_with_two_routes(rated, other, tie_capacity=1500)
+    find(doc, rated).pop("capacity")
+    result = run(doc)
+    assert overloads(result) == {(f"T_A_{rated}", band) for band in BANDS}
+    assert D(result, f"T_A_{rated}") == near(2000)
+
+
+@pytest.mark.tc("TC-ENG-078")
+def test_island_total_holds_own_loads_and_tru_input_per_band():
+    doc = fx("FX-RING")
+    trus = [tru("TRU1", "AC2", "DC1", 0.80, 5000)]
+    doc["buses"].append(dc("DC1"))
+    doc["trus"] += trus
+    doc["contactors"] += tru_contactors(trus[0])
+    doc["loads"].append(load("LD", "DC1", (800, 400, 200)))
+    find(doc, "AC1")["capacity"] = tri(100000)
+    find(doc, "T23")["capacity"] = tri(100000)
+    result = run(doc)
+    # Own 100 + 200 + 300, plus TRU input 800 / 0.8, 400 / 0.8 and 200 / 0.8.
+    assert D(result, "AC1") == near((1600, 1100, 850))
+    assert D(result, "T23") == near((1600, 1100, 850))
+    assert triple(result.el["AC1"].own) == near(100)
+
+
+@pytest.mark.tc("TC-ENG-078")
+def test_island_total_on_a_dc_loop_with_two_feeders():
+    doc = definition(
+        [bat("BAT1", 2000), bat("BAT2", 1000)],
+        [dc("D1"), dc("D2"), dc("D3", capacity=500)],
+        [],
+        [
+            c("BAT1", "D1"),
+            c("BAT2", "D2"),
+            tie("T12", "D1", "D2"),
+            tie("T13", "D1", "D3"),
+            tie("T23", "D2", "D3"),
+        ],
+        [load("L", "D3", 900)],
+        margin=0,
+    )
+    result = run(doc)
+    assert D(result, "D3") == near(900)
+    assert overloads(result) == {("D3", band) for band in BANDS}
+
+
+@pytest.mark.tc("TC-ENG-079")
+def test_unrated_elements_keep_the_tree_flow():
+    doc = fx("FX-RING")
+    find(doc, "AC1")["capacity"] = tri(100000)
+    result = run(doc)
+    assert D(result, "AC1") == near(600)
+    assert D(result, "AC2") == near(200)
+    assert D(result, "AC3") == near(300)
+    assert D(result, "T12") == near(200)
+    assert D(result, "T13") == near(300)
+    assert D(result, "T23") == near(0)
+
+
+@pytest.mark.tc("TC-ENG-079")
+def test_rated_elements_off_the_loop_keep_their_flow():
+    doc = fx("FX-RING")
+    doc["buses"].append(ac("AC4", capacity=100000))
+    doc["contactors"].append(tie("T34", "AC3", "AC4", capacity=100000))
+    doc["loads"].append(load("L4", "AC4", 400))
+    find(doc, "C_G1")["capacity"] = tri(100000)
+    result = run(doc)
+    assert D(result, "T34") == near(400)
+    assert D(result, "AC4") == near(400)
+    assert D(result, "C_G1") == near(1000)
+    assert [w.element for w in meshed(result)] == ["T23"]
+
+
+@pytest.mark.tc("TC-ENG-079")
+def test_a_rated_bus_is_not_on_a_loop_through_a_failed_source():
+    doc = fx("FX-SRCBRIDGE")
+    doc["contactors"].append(tie("T_AB", "AC1", "AC2", "open"))
+    find(doc, "AC1")["capacity"] = tri(100000)
+    assert D(run(doc), "AC1") == near(300)  # G1 alone joins the buses, so there is no loop
+    assert meshed(run(doc, {"G1": "failed", "G2": "operative"})) == []
+
+
+@pytest.mark.tc("TC-ENG-080")
+def test_warning_names_each_rated_element_on_a_loop():
+    doc = fx("FX-RING")
+    find(doc, "AC2")["capacity"] = tri(100000)
+    find(doc, "T12")["capacity"] = tri(100000)
+    find(doc, "T23")["capacity"] = tri(100000)
+    result = run(doc)
+    assert [w.element for w in meshed(result)] == ["AC2", "T12", "T23"]
+    for warning in meshed(result):
+        assert warning.element in warning.message
+    assert D(result, "T23") == near(600)
+    assert result.verdict == "PASS"
+
+
+@pytest.mark.tc("TC-ENG-080")
+def test_parallel_rated_ties_are_both_on_a_loop():
+    doc = definition(
+        [gen(1, 20000)],
+        [ac("AC1"), ac("AC2")],
+        [],
+        [c("G1", "AC1"), tie("TA", "AC1", "AC2", capacity=500), tie("TB", "AC1", "AC2", capacity=500)],
+        [load("L2", "AC2", 200)],
+    )
+    result = run(doc)
+    assert D(result, "TA") == near(200)
+    assert D(result, "TB") == near(200)
+    assert [w.element for w in meshed(result)] == ["TA", "TB"]
 
 
 @pytest.mark.tc("TC-ENG-026")
@@ -1072,7 +1272,7 @@ COMMON = {"state", "energised", "demand", "with_margin", "capacity", "margin_w",
     "element, extra",
     [
         ("G1", {"load_pct"}),
-        ("AC1", {"own", "voltage", "current"}),
+        ("AC1", {"own", "voltage", "current", "fed_by"}),
         ("TRU1", {"load_pct", "input", "output"}),
         ("C_G1", set()),
     ],
@@ -1117,6 +1317,77 @@ def test_warning_and_island_entry_fields():
     assert (warning.code, warning.element) == ("meshed_island", "T23")
     assert warning.message
     assert (result.islands[0].buses, result.islands[0].sources) == (["AC1", "AC2", "AC3"], ["G1"])
+
+
+# --- Fed by ---
+
+
+@pytest.mark.tc("TC-ENG-081")
+@pytest.mark.parametrize(
+    "name, states, expected",
+    [
+        ("FX-SINGLE", {}, {"AC1": ["G1"], "DC1": ["TRU1"]}),
+        ("FX-SINGLE", {"G1": "failed"}, {"AC1": [], "DC1": []}),
+        ("FX-TWO-TRU", {}, {"DC1": ["TRU1", "TRU2"]}),
+        ("FX-BAT", {}, {"DC1": ["TRU1"], "DCB": ["TRU1"]}),
+        ("FX-BAT", {"G1": "failed"}, {"AC1": [], "DC1": ["BAT"], "DCB": ["BAT"]}),
+        ("FX-BAT2", {}, {"DC1": ["BAT1", "BAT2"]}),
+        ("FX-TRU-RAT", {}, {"DC1": ["RAT_DC", "TRU1"]}),
+        ("FX-PAR", {}, {"AC1": ["G1", "G2"], "AC2": ["G1", "G2"], "DC1": ["TRU1"]}),
+        ("FX-CREW", {"DCS": "off"}, {"DCS": ["BAT"], "DCX": ["BAT"]}),
+    ],
+)
+def test_fed_by(name, states, expected):
+    result = run(fx(name), states)
+    assert {bus: result.el[bus].fed_by for bus in expected} == expected
+
+
+@pytest.mark.tc("TC-ENG-082")
+def test_fed_by_battery_through_ties_below_dead_trus():
+    doc = json.loads(SAMPLE.read_text("utf-8"))
+    ac_feeds = ["GLC1", "GLC2", "APLC1", "APLC2", "RLC"]
+    assert [k["id"] for k in doc["contactors"] if k["kind"] == "source" and k["id"] != "BATC"] == (
+        ac_feeds
+    )
+    states = dict.fromkeys(ac_feeds, "open")
+    result = run(doc, states)
+    assert result.el["DCESS"].energised is True
+    assert result.el["DCESS"].fed_by == ["BAT"]
+    assert result.el["DCBAT"].fed_by == ["BAT"]
+    for t in doc["trus"]:
+        assert result.el[t["id"]].energised is False, t["id"]
+    for bus in ("DC1", "DC2", "AC1", "AC2", "ACESS"):
+        assert (result.el[bus].energised, result.el[bus].fed_by) == (False, [])
+
+    dead = run(doc, {**states, "BATC": "open"})
+    for bus in doc["buses"]:
+        assert (dead.el[bus["id"]].energised, dead.el[bus["id"]].fed_by) == (False, [])
+
+
+# --- Extreme values ---
+
+
+@pytest.mark.tc("TC-ENG-084")
+@pytest.mark.parametrize(
+    "path, value",
+    [
+        ("$.sources[0].capacity", 1e-300),
+        ("$.buses[0].capacity", 1e-300),
+        ("$.buses[0].voltage", 1e-300),
+        ("$.trus[0].efficiency", 1e-300),
+        ("$.settings.safety_margin", 1e12),
+    ],
+)
+def test_figures_stay_finite_at_the_limits(path, value):
+    doc = fx("FX-SINGLE")
+    doc["loads"] = [load("LA", "AC1", 1e12), load("LD", "DC1", 1e12)]
+    if path.endswith("capacity"):
+        value = tri(value)
+    setp(doc, path, value)
+    result = run(doc)
+    assert result.verdict == "FAIL"
+    assert result.worst.element is not None
+    json.dumps(result.to_dict(), allow_nan=False)  # raises on an infinity or NaN
 
 
 # --- Purity ---

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from conftest import (
     BANDS,
+    apu,
     delp,
     find,
     fx,
@@ -444,3 +445,53 @@ def test_endurance_and_flight_phase_keys_are_unknown():
 def test_pydantic_schema_module():
     assert Path(ela.model.__file__).name == "model.py"
     assert issubclass(ela.model.Definition, BaseModel)
+
+
+@pytest.mark.tc("TC-MOD-026")
+@pytest.mark.parametrize(
+    "path",
+    [
+        "$.settings.safety_margin",
+        "$.settings.bands.transient.duration_s",
+        "$.sources[0].capacity.transient",
+        "$.sources[0].voltage",
+        "$.sources[0].phases",
+        "$.sources[0].engine",
+        "$.sources[0].safety_margin",
+        "$.buses[0].capacity.continuous",
+        "$.buses[0].voltage",
+        "$.buses[0].phases",
+        "$.trus[0].capacity.short_term",
+        "$.contactors[0].capacity.transient",
+        "$.loads[0].power.continuous",
+    ],
+)
+def test_numbers_are_capped_at_1e12(path):
+    def doc(value):
+        base = fx("FX-SINGLE")
+        base["settings"]["bands"] = {"transient": {}}
+        base["buses"][0]["capacity"] = dict.fromkeys(BANDS, 100)
+        base["contactors"][0]["capacity"] = dict.fromkeys(BANDS, 100)
+        return setp(base, path, value)
+
+    whole = path.endswith(("phases", "engine"))
+    accepted(doc(10**12 if whole else 1e12))
+    for value in (10**12 + 1, 1.0000001e12, 10**400):
+        if whole and isinstance(value, float):
+            continue
+        assert has_error(rejected(doc(value)), path)
+
+
+@pytest.mark.tc("TC-MOD-026")
+@pytest.mark.parametrize("path", ["$.settings.bands.transient.duration_s", "$.sources[0].engine"])
+def test_negative_numbers_are_capped_at_1e12(path):
+    doc = fx("FX-SINGLE")
+    doc["settings"]["bands"] = {"transient": {}}
+    assert has_error(rejected(setp(doc, path, -(10**12) - 1)), path)
+
+
+@pytest.mark.tc("TC-MOD-026")
+def test_apu_with_a_capped_voltage_is_accepted():
+    doc = fx("FX-SINGLE")
+    doc["sources"].append(apu(1e12, voltage=1e12))
+    accepted(doc)

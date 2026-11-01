@@ -286,6 +286,7 @@ def fx_single():
 def fx_single_e():
     doc = fx_single()
     find(doc, "LA")["essential"] = True
+    doc["scenarios"] = [scenario("S1", {})]
     return doc
 
 
@@ -776,7 +777,7 @@ def fx_many():
     setp(doc, "$.buses[0].voltage", 0)
     doc["loads"].append(load("LA", "AC1", 1))
     doc["contactors"].append(tie("TBAD", "AC1", "DC1"))
-    doc["scenarios"].append(scenario("S1", {"GHOST": "failed", "G1": "closed"}, "n"))
+    doc["scenarios"] = [scenario("S1", {"GHOST": "failed", "G1": "closed"}, "n")]
     return doc
 
 

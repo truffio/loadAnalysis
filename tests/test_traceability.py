@@ -24,7 +24,14 @@ IMPLEMENTED_PREFIXES = [
 # Cases of an implemented prefix that cannot run yet, with what they wait for. An entry must go as
 # soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
 # run on the sample through `configurations()` in tests/test_engine.py.
-DEFERRED_CASES = {}
+DEFERRED_CASES = {
+    "TC-WIN-049": "the Fed by tooltip line, front-end work on issue #68",
+    "TC-WIN-050": "the Not analysed display, front-end work on issue #68",
+    "TC-WIN-051": "power units by view, front-end work on issue #68",
+    "TC-WIN-052": "select placeholders, front-end work on issue #68",
+    "TC-WBT-013": "band labels in the batch table, front-end work on issue #68",
+    "TC-WBT-014": "batch detail in W, front-end work on issue #68",
+}
 
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
@@ -176,7 +183,7 @@ def test_deferred_cases_are_still_deferred():
 
 @pytest.mark.tc("TC-VAL-007")
 def test_every_validator_condition_has_a_passing_test(not_meta_run):
-    conditions = {f"L2-VAL-{n:03d}" for n in [*range(7, 31), 32, 33]}
+    conditions = {f"L2-VAL-{n:03d}" for n in [*range(7, 31), *range(32, 38)]}
     assert sorted(conditions - covered_requirements()) == []
     assert not_meta_run.returncode == 0, not_meta_run.stdout[-2000:]
 

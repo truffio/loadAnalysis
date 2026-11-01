@@ -29,14 +29,14 @@ from test_system import (
 from test_web_batch import run_batch_on_page, table_cells
 
 HAND = EXPECTED["scenarios"]
-TOLERANCE_W = 1.0
+TOLERANCE_W = 1e-6
 
 
 def sample_batch(tmp_path):
     """`ela batch --json out.json` on the sample: the exit code and the parsed results."""
     out = tmp_path / "out.json"
     done = cli(SAMPLE_FILE, "--json", out)
-    assert done.returncode in (0, 1), done.stderr
+    assert done.returncode == 1, done.stderr  # the sample fails some scenarios by design
     return done, json.loads(out.read_text("utf-8"))
 
 
@@ -62,9 +62,9 @@ def test_same_tool_different_aircraft(client, defs_dir, tmp_path):
     put_def(defs_dir, fx("FX-4ENG"), "fx_4eng.json")
     four = tmp_path / "fx_4eng.json"
     four.write_text(json.dumps(fx("FX-4ENG")), encoding="utf-8")
-    for name, path, scenarios in (
-        ("generic_twin", SAMPLE_FILE, len(SAMPLE["scenarios"])),
-        ("fx_4eng", four, 2),
+    for name, path, scenarios, exit_code in (
+        ("generic_twin", SAMPLE_FILE, len(SAMPLE["scenarios"]), 1),
+        ("fx_4eng", four, 2, 0),
     ):
         listing = client.get(f"/api/definitions/{name}")
         assert listing.status_code == 200, name
@@ -76,7 +76,7 @@ def test_same_tool_different_aircraft(client, defs_dir, tmp_path):
         assert api.status_code == 200
         assert len(api.json()["results"]) == scenarios
         done = cli(path)
-        assert done.returncode in (0, 1), done.stderr
+        assert done.returncode == exit_code, done.stderr
         assert len(stdout_cells(done)) == scenarios
     assert [r["result"] for r in client.post("/api/definitions/fx_4eng/batch").json()["results"]] == [
         "PASS", "PASS",
@@ -234,7 +234,7 @@ def test_readme_alone_gets_an_engineer_running(fresh_clone, browser, tmp_path):
             else:
                 done = rt.run_command(command, fresh_clone.path)
                 # The sample fails some scenarios by design, so its batch run exits with 1.
-                assert done.returncode in (0, 1), f"{command}:\n{done.stderr[-2000:]}"
+                assert done.returncode == 1, f"{command}:\n{done.stderr[-2000:]}"
         assert server is not None
         assert (fresh_clone.path / "results.csv").is_file()
         assert (fresh_clone.path / "results.json").is_file()
