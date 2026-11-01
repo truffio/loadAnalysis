@@ -11,6 +11,7 @@ import {
 
 const $ = (id) => document.getElementById(id);
 const BANDS = ["transient", "short_term", "continuous"];
+const NOT_ANALYSED = "Not analysed";
 const DEFAULT_BAND_LABELS = { transient: "Transient", short_term: "5 s", continuous: "Continuous" };
 const ON_OFF = { operative: "failed", failed: "operative", available: "unavailable",
   unavailable: "available", closed: "open", open: "closed", on: "off", off: "on" };
@@ -19,10 +20,12 @@ const app = {
   id: null, // open definition
   data: null, // GET /api/definitions/{id}
   info: {}, // element id to {name, kind, role, default, ...}
-  states: {},
+  states: {}, // what the next click builds on, and what the last good answer was for
   scenario: "",
   band: "continuous",
-  result: null,
+  result: null, // the last good answer
+  shown: { states: {}, scenario: "" }, // the states and scenario that answer was for
+  stale: false, // the last request failed, so the drawing and verdict describe an older request
   analysisSeq: 0, // later clicks win over earlier answers
   openSeq: 0, // later definition choices win over earlier answers
   tooltipFor: null,
@@ -83,7 +86,7 @@ async function refreshDefinitions(selectId) {
   const response = await fetch("/api/definitions");
   const body = await readJson(response);
   const current = selectId ?? dom.definition.value;
-  dom.definition.replaceChildren();
+  dom.definition.replaceChildren(placeholder("Choose a definition"));
   for (const d of body.definitions || []) {
     const detail = d.aircraft ? `${d.aircraft}${d.revision ? ` rev ${d.revision}` : ""}` : "not readable";
     dom.definition.append(htmlEl("option", { value: d.id, title: detail, text: d.id }));
@@ -91,10 +94,15 @@ async function refreshDefinitions(selectId) {
   choose(dom.definition, current);
 }
 
-/** Selects the option with this value, or none: a select with nothing chosen shows blank. */
+/** The first option of a select with nothing chosen. Its value is empty, so it is no id. */
+function placeholder(text) {
+  return htmlEl("option", { value: "", class: "placeholder", text: `${text}…` });
+}
+
+/** Selects the option with this value, or the placeholder when there is none. */
 function choose(select, value) {
   const index = [...select.options].findIndex((o) => o.value === value && value !== "");
-  select.selectedIndex = index;
+  select.selectedIndex = Math.max(index, 0);
 }
 
 function resetInteractiveView() {
@@ -102,6 +110,8 @@ function resetInteractiveView() {
   app.scenario = "";
   app.band = "continuous";
   app.result = null;
+  app.shown = { states: {}, scenario: "" };
+  setStale(false);
   app.analysisSeq += 1;
   hideTooltip();
   choose(dom.scenario, "");
@@ -206,7 +216,7 @@ function fillBands(definition) {
 }
 
 function fillScenarios(definition) {
-  dom.scenario.replaceChildren();
+  dom.scenario.replaceChildren(placeholder("Choose a scenario"));
   for (const s of definition ? definition.scenarios : []) {
     dom.scenario.append(htmlEl("option", { value: s.id, text: s.name }));
   }
@@ -228,31 +238,58 @@ async function analyse() {
     });
     body = await readJson(response);
   } catch {
-    if (seq === app.analysisSeq) showMessage("error", "The server could not be reached.");
+    if (seq === app.analysisSeq && open === app.openSeq) {
+      notAnalysed();
+      showMessage("error", "The server could not be reached.");
+    }
     return;
   }
   if (seq !== app.analysisSeq || open !== app.openSeq) return; // a later click has superseded this
   if (!response.ok) {
+    notAnalysed();
     showMessage("error", "The configuration was not analysed.", failureIssues(body, response));
     return;
   }
   clearMessage();
   app.result = body;
+  app.shown = { states: { ...app.states }, scenario: app.scenario };
+  setStale(false);
   render();
+}
+
+/** Marks the drawing and verdict as describing an older request, until a good answer arrives. */
+function setStale(stale) {
+  app.stale = stale;
+  $("schematic").classList.toggle("stale", stale);
+  $("schematic").dataset.stale = String(stale);
+  if (stale) hideTooltip();
+}
+
+/**
+ * A failed request changed nothing on screen, so the states and the scenario go back to what is
+ * shown. The next click then builds on what the person sees. The verdict says "Not analysed".
+ */
+function notAnalysed() {
+  app.states = { ...app.shown.states };
+  app.scenario = app.shown.scenario;
+  choose(dom.scenario, app.scenario);
+  setStale(true);
+  dom.verdict.textContent = NOT_ANALYSED;
+  dom.verdict.className = "verdict stale";
+  dom.statusList.replaceChildren();
 }
 
 function render() {
   if (!app.result) return;
   schematic.update(app.result, app.band, bandLabels(), drawnNames());
+  if (app.stale) return; // the verdict keeps saying Not analysed
   renderStatus();
   refreshTooltip();
 }
 
 function drawnNames() {
   const names = {};
-  for (const [id, info] of Object.entries(app.info)) {
-    names[id] = info.kind === "bus" ? info.name : id;
-  }
+  for (const [id, info] of Object.entries(app.info)) names[id] = info.name;
   return names;
 }
 
@@ -380,12 +417,16 @@ function tooltipNode(id) {
 
   const facts = [];
   const state = record && record.state;
+  facts.push(["Id", id]);
   facts.push(["Kind", info.kindText]);
   if (info.kind === "bus") facts.push(["Role", info.role]);
   if (info.kind === "crew_switch") facts.push(["Bus", busInfo.name]);
   if (state) facts.push([info.kind === "bus" || info.kind === "crew_switch" ? "Crew switch" : "State", state]);
   if (info.kind === "contactor") facts.push(["Joins", `${info.from} and ${info.to}`]);
   if (record) facts.push(["Energised", record.energised ? "yes" : "no"]);
+  if (info.kind === "bus" && record && record.energised && record.fed_by && record.fed_by.length) {
+    facts.push(["Fed by", record.fed_by.map((id) => (app.info[id] && app.info[id].name) || id).join(", ")]);
+  }
 
   const root = htmlEl("div", { class: "tt-body", "data-for": id });
   root.append(
@@ -410,7 +451,7 @@ function placeTooltip(point) {
 }
 
 function showTooltip(id, { x, y, pinned = false } = {}) {
-  if (!app.info[id] || !app.result) return;
+  if (!app.info[id] || !app.result || app.stale) return;
   app.tooltipFor = id;
   app.tooltipPinned = pinned;
   if (x !== undefined) app.tooltipAt = { x, y };

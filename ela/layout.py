@@ -15,6 +15,12 @@
    a sparse grid, which never enters an item and pays for each bend and crossing. A connector
    shares a line only as a last resort, and then only with one that ends on the same node.
 
+Text room. Each source and TRU gets a label box of three lines, for its name, its load and its
+percentage, and each bus a strip beside its bar for its figures. A bar is at least as wide as its
+name needs, up to `NAME_ROOM_MAX`, when the drawing can still fit `DRAW_WIDTH`. The front end cuts
+a name that is wider than its box with an ellipsis, so it is never dropped and never runs into a
+neighbour.
+
 Everything is a function of the definition's contents. Ids sort naturally, so `AC2` < `AC10`.
 """
 
@@ -42,9 +48,15 @@ SWITCH_DROP = 2  # gap between a bar and its crew switch
 GAP_MIN = 18  # vertical gap between rows
 GAP_MAX = 44
 TEXT_HEIGHT = 12  # one line of 10 px text
-BUS_LABEL_WIDTH = 104  # "115 V  7.25 A  2.50 kW"
-ICON_LABEL_WIDTH = 64  # "45.2 kW  50 %"
+BUS_LABEL_WIDTH = 120  # "115 V 159.29 A 123.46 kW", about 115 px of 10 px text
+BUS_LABEL2_WIDTH = 76  # two lines: "115 V 159.29 A" over "123.46 kW"
+ICON_LABEL_WIDTH = 72  # the name over "100.00 kW" over "100 %"; the name is cut to this width
+ICON_LABEL_LINES = 3  # name, load, percentage
+NAME_CHAR = 5.2  # px per character of a bus name in 10 px semibold text, with some margin
+NAME_PAD = 10  # px around a bus name inside its bar
+NAME_ROOM_MAX = 96  # a longer name is cut with an ellipsis rather than widening its bar further
 CLEARANCE = 3  # routing keeps this far from any item
+TEXT_CLEAR = 2  # a text block keeps this far to the side of any item or other text
 TIE_ROOM = 16  # extra space between two level ties in one gap
 TRACK = 6  # spacing of routing lanes in a gap between rows
 
@@ -89,9 +101,10 @@ class Spacing:
 
 # Widest first. The last step has no text room and is the densest the icons allow.
 SPACINGS = (
-    *(Spacing(68 + 2 * t, 12 + t // 2, 64 + 5 * t) for t in range(22, -1, -1)),
+    *(Spacing(ICON_LABEL_WIDTH + 4 + 2 * t, 12 + t // 2, 64 + 5 * t) for t in range(22, -1, -1)),
     *(Spacing(6 * t, 12, 44 + 2 * t) for t in range(10, -1, -1)),
 )
+WITH_TEXT_ROOM = 23  # the first steps of SPACINGS, which keep room for an icon's text
 
 
 @dataclass
@@ -158,6 +171,14 @@ class Box:
         return self.hits(
             Box(min(a[0], b[0]), min(a[1], b[1]), abs(a[0] - b[0]) or 1, abs(a[1] - b[1]) or 1)
         )
+
+
+def _name_rooms(net):
+    """Least width of each bar that shows its name in full, up to NAME_ROOM_MAX."""
+    return {
+        b.id: min(NAME_ROOM_MAX, round(len(b.name) * NAME_CHAR) + NAME_PAD)
+        for b in net.defn.buses
+    }
 
 
 def _natural(text):
@@ -512,6 +533,7 @@ class _Horizontal:
     def __init__(self, net: _Network, rows):
         self.net = net
         self.rows = self._with_level_ties(rows)
+        self.name_room = {}  # bar id to the width its name asks for, set by `_solve`
         self.parent = {n: n for row in self.rows for n in row}
         self.covers = set()  # (bar, node): the strand of node lands on this bar
         self.straight = []  # links drawn as one straight segment
@@ -627,7 +649,7 @@ class _Horizontal:
         edges = []
         for a_var, b_var, a, b in self._edges(self.parent, self.covers):
             if a == b:
-                w = spacing.bar
+                w = max(spacing.bar, self.name_room.get(a, 0))
             elif a_var == ("L", a) or b_var == ("R", b):
                 w = BAR_END  # a strand inside its bar
             else:
@@ -677,7 +699,8 @@ class _Horizontal:
                     ready.append(m)
         return dist
 
-    def _solve(self, spacing):
+    def _solve(self, spacing, named):
+        self.name_room = _name_rooms(self.net) if named else {}
         edges = self._weighted(spacing)
         forward = self._longest(edges)
         backward = self._longest(edges, reverse=True)
@@ -716,8 +739,12 @@ class _Horizontal:
         return x[self._find(self.parent, node)]
 
     def solve(self):
-        for spacing in SPACINGS:
-            x, total = self._solve(spacing)
+        """The widest spacing that fits. A bar wide enough for its name is preferred to wider text
+        room, as long as the icons keep some text room, and failing that bars are as narrow as the
+        spacing says."""
+        tries = [(s, True) for s in SPACINGS[:WITH_TEXT_ROOM]] + [(s, False) for s in SPACINGS]
+        for spacing, named in tries:
+            x, total = self._solve(spacing, named)
             if total <= DRAW_WIDTH:
                 break
         self.spacing = spacing
@@ -1154,7 +1181,8 @@ def _label_slots(net, boxes, connectors, width, height):
     taken = list(boxes.values())
 
     def clashes(candidate, own):
-        hits = sum(1 for box in taken if box is not own and box.hits(candidate))
+        near = Box(candidate.x - TEXT_CLEAR, candidate.y, candidate.w + 2 * TEXT_CLEAR, candidate.h)
+        hits = sum(1 for box in taken if box is not own and box.hits(near))
         return hits + sum(1 for a, b in segments if candidate.hits_segment(a, b))
 
     def best(candidates, own):
@@ -1183,18 +1211,20 @@ def _label_slots(net, boxes, connectors, width, height):
 
 
 def _icon_candidates(box):
-    top = box.cy - TEXT_HEIGHT
+    """The text block of an icon, its name over its load, beside it on either side."""
+    height = ICON_LABEL_LINES * TEXT_HEIGHT
+    top = box.cy - height // 2
     out = []
     for width in (ICON_LABEL_WIDTH, ICON_LABEL_WIDTH - 8):
-        out.append(Box(box.right + 4, top, width, 2 * TEXT_HEIGHT))
-        out.append(Box(box.x - 4 - width, top, width, 2 * TEXT_HEIGHT))
+        out.append(Box(box.right + 4, top, width, height))
+        out.append(Box(box.x - 4 - width, top, width, height))
     return out
 
 
 def _bus_candidates(bar):
     """Strips along the bar, one line then two, which may run past its ends."""
     out = []
-    for width, height in ((BUS_LABEL_WIDTH, TEXT_HEIGHT), (ICON_LABEL_WIDTH, 2 * TEXT_HEIGHT)):
+    for width, height in ((BUS_LABEL_WIDTH, TEXT_HEIGHT), (BUS_LABEL2_WIDTH, 2 * TEXT_HEIGHT)):
         for y in (bar.bottom + 1, bar.bottom + 4, bar.y - height - 1, bar.y - height - 4):
             out += [Box(x, y, width, height) for x in range(bar.x, bar.right - width + 1, 4)]
             out += [Box(bar.x - shift, y, width, height) for shift in range(0, width // 2, 4)]

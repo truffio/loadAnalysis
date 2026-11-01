@@ -132,7 +132,7 @@ def sample_docs():
 
 def readable_docs():
     """Everything the 50-item readability rules are held to."""
-    return [fx("FX-50"), *sample_docs()]
+    return [fx("FX-50"), fx("FX-50N"), fx("FX-8ENGN"), *sample_docs()]
 
 
 # --- Reading a layout -----------------------------------------------------------------------
@@ -811,6 +811,25 @@ def test_fit_scale_keeps_10_px_text_legible(doc):
     assert fit_scale(drawn) >= 1
     assert drawn["width"] <= 1000
     assert drawn["height"] <= 560
+
+
+@pytest.mark.tc("TC-LAY-021")
+@pytest.mark.parametrize("name", ["FX-50N", "FX-8ENGN"])
+def test_text_room_holds_a_name_and_a_load(name):
+    doc = fx(name)
+    drawn = by_id(lay(doc))
+    names = {e["id"]: e["name"] for key in ("sources", "trus", "buses") for e in doc[key]}
+    for id_, text in names.items():
+        item = drawn[id_]
+        if item["kind"] == "bus":
+            # A bar is wide enough for its name, up to 96 px, in the 10 px semibold face (5.2 px
+            # per character on average, and 10 px around the name).
+            assert item["width"] >= min(96, round(len(text) * 5.2) + 10), id_
+            assert item["label"]["width"] >= 76 and item["label"]["height"] >= 12, id_
+        else:
+            # Three lines: the name, the load, and the percentage of capacity.
+            assert item["label"]["height"] >= 36, id_
+            assert item["label"]["width"] >= 64, id_
 
 
 @pytest.mark.tc("TC-LAY-016")

@@ -24,7 +24,14 @@ import readme_tools as rt
 from conftest import REPO, find, fx, put_def, scenario, setp, tri
 from playwright.sync_api import expect
 from test_cli import NO_SOCKET
-from test_web_batch import FX_BATCH_ROWS, expand, row, run_batch_on_page, table_cells
+from test_web_batch import (
+    BAND_LABELS,
+    FX_BATCH_ROWS,
+    expand,
+    row,
+    run_batch_on_page,
+    table_cells,
+)
 from test_web_interactive import (
     SAMPLE,
     hue_sat,
@@ -62,6 +69,13 @@ def write_doc(folder, doc, name="defn.json"):
     path = folder / name
     path.write_text(json.dumps(doc), encoding="utf-8")
     return path
+
+
+def band_keys(rows):
+    """Table rows with the worst band as its key again. The table shows its label (DD-033), the CLI
+    and the exports keep the key."""
+    keys = {label: key for key, label in BAND_LABELS.items()}
+    return [[keys.get(cell, cell) if i == 4 else cell for i, cell in enumerate(r)] for r in rows]
 
 
 def stdout_cells(done):
@@ -877,7 +891,7 @@ def test_browser_and_cli_runs_agree(h_page, defs_dir, tmp_path):
         out = tmp_path / f"{name}.json"
         done = cli(path, "--json", out)
         assert done.returncode == 1, done.stderr  # both fail some scenarios by design
-        assert stdout_cells(done) == shown
+        assert stdout_cells(done) == band_keys(shown)
         results = json.loads(out.read_text("utf-8"))
         assert [r["scenario_id"] for r in results] == [cells[0] for cells in shown]
         if name == "fx_batch":
@@ -923,7 +937,7 @@ def test_exports_parse_and_match(h_page):
     h = h_page()
     h.open("generic_twin")
     run_batch_on_page(h)
-    shown = table_cells(h)
+    shown = band_keys(table_cells(h))
     downloads = {}
     for kind, control in (("csv", "#export-csv"), ("json", "#export-json")):
         with h.page.expect_download() as download:
