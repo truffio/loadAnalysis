@@ -5407,6 +5407,28 @@ Verification: Test; success criteria: over the fixtures and seeded random topolo
 Status: Draft
 ```
 
+### L2-LAY-021
+
+```req
+ID: L2-LAY-021
+Level: L2
+Type: Usability
+Statement: The layout engine shall reserve for each source and TRU a label box of at least 64 px
+  by three lines of text, for its name, its load and its percentage of capacity, and shall make
+  each bar at least as wide as its bus name needs, up to 96 px.
+Rationale: The front end draws the name in the label box and cuts it to that box, so the box has to
+  hold a name as well as the figures. Without it the names of neighbouring icons touched each
+  other's figures and the leftmost name ran off the drawing.
+Parent(s): L1-ELA-041
+Source: docs/audit.md finding 3
+Allocated to: C-LAYOUT
+Verification: Test; success criteria: on a 50-item fixture and an 8-engine fixture with names such
+  as "Generator 1" and "AC MAIN BUS 1", each source and TRU label box is at least 64 px wide and
+  36 px high, each bar is at least min(96, 5.2 × name length + 10) px wide, and no label box meets
+  another label box, an item or a connector.
+Status: Draft
+```
+
 <!-- END SECTION LAY-ROUTING -->
 
 ## C-API: HTTP API
@@ -6562,14 +6584,15 @@ ID: L2-WIN-054
 Level: L2
 Type: Functional
 Statement: The interactive front end shall show in the tooltip of each energised bus a "Fed by" line
-  listing that bus's `fed_by` ids.
+  listing, by `name`, the sources and TRUs in that bus's `fed_by` ids.
 Rationale: The project owner reported a live DC bus below a dead TRU. The screen did not say what
-  fed it.
+  fed it. Names are what people read, so ids are not shown.
 Parent(s): L1-ELA-046
 Source: DD-030
 Allocated to: C-WEBINT
 Verification: Test; success criteria: on the sample with all five AC source contactors open, the
-  tooltip of DC ESS reads Fed by BAT, and a de-energised bus shows no such line.
+  tooltip of DC ESS reads Fed by Main Battery, a de-energised bus shows no such line, and an idle
+  battery on an island fed by a TRU is not listed.
 Status: Draft
 ```
 
@@ -6587,6 +6610,69 @@ Source: DD-032
 Allocated to: C-WEBINT
 Verification: Test; success criteria: a demand of 1000.4 W with margin against 1100 W shows in W in
   the tooltip and status panel, while the bus label shows kW.
+Status: Draft
+```
+
+### L2-WIN-058
+
+```req
+ID: L2-WIN-058
+Level: L2
+Type: Functional
+Statement: The interactive front end shall draw the `name` of each bus, source and TRU, cut with an
+  ellipsis to the room reserved for it when it does not fit, never dropped, and shall show the
+  element's full `name` and its `id` in its tooltip.
+Rationale: `name` is the text shown to people, so the drawing shows it and not the id. At about 50
+  items a long name was dropped from the drawing, and the tooltip is where the whole name stays
+  readable.
+Parent(s): L1-ELA-041, L1-ELA-046
+Source: docs/audit.md finding 3
+Allocated to: C-WEBINT
+Verification: Test; success criteria: a generator and a bus whose names are longer than their room
+  are drawn as the start of the name and an ellipsis, inside the label box and the bar the layout
+  gives them, a name that fits is drawn whole, no id is drawn in place of a name, and the tooltip
+  shows the full name and the id.
+Status: Draft
+```
+
+### L2-WIN-059
+
+```req
+ID: L2-WIN-059
+Level: L2
+Type: Usability
+Statement: The interactive front end shall draw a 50-item schematic with realistic element names at
+  1366 × 768 px with no text overlapping other text or a symbol, no text cut off by the edge of the
+  drawing and no name dropped.
+Rationale: An audit found labels dropped or clipped at about 50 items with realistic names, and the
+  example aircraft showed names clipped at the left edge and touching their neighbours.
+Parent(s): L1-ELA-041
+Source: docs/audit.md finding 3
+Allocated to: C-WEBINT
+Verification: Test; success criteria: on a 50-item fixture with names such as "AC MAIN BUS 1" and
+  on an 8-engine fixture, in several configurations and both the Continuous and the Transient band,
+  the measured box of each text in the browser overlaps no other text and no symbol except its own
+  bus bar, lies inside the drawing, and lies inside the box the layout reserved for it.
+Status: Draft
+```
+
+### L2-WIN-060
+
+```req
+ID: L2-WIN-060
+Level: L2
+Type: Functional
+Statement: The interactive front end shall format every number a definition and an analysis can
+  produce, up to 1e12 W with a margin of 1e12 and down to the smallest positive capacity, without
+  error, writing a magnitude of 1e21 or more in exponent form.
+Rationale: DD-028 allows values up to 1e12, so a figure of 1e24 W with margin is legal, and digit
+  arithmetic on such a figure failed and stopped the page drawing.
+Parent(s): L1-ELA-046
+Source: docs/audit.md findings 9 and 10; DD-028
+Allocated to: C-WEBINT
+Verification: Test; success criteria: 1e21 formats as `1.00e+21` with 2 decimals, 1e24 W as
+  `1.00e+24 W`, a value of 1e-300 as zero, and a definition with a load of 1e12 W and a margin of
+  1e12 opens, draws and lists its overloads with no error in the page.
 Status: Draft
 ```
 
@@ -6882,13 +6968,18 @@ ID: L2-WIN-055
 Level: L2
 Type: Functional
 Statement: The interactive front end shall change the verdict to "Not analysed" and show the
-  schematic as stale when an analysis request fails, until a good answer arrives.
-Rationale: A verdict must not outlive the configuration it describes.
+  schematic as stale (`data-stale` true on `#schematic`) when an analysis request fails, until a
+  good answer arrives, and shall keep its component states and scenario selection equal to what
+  the stale schematic shows.
+Rationale: A verdict must not outlive the configuration it describes, and a click made on a stale
+  drawing must build on what that drawing shows.
 Parent(s): L1-ELA-052
 Source: DD-031
 Allocated to: C-WEBINT
 Verification: Test; success criteria: with the analyse route failing, a click gives "Not analysed"
-  and a stale schematic, and the next good answer restores the verdict.
+  and a stale schematic that still shows the earlier states, the next click sends the states that
+  drawing shows with the click applied, a scenario chosen while the route fails is not left
+  selected, and the next good answer restores the verdict.
 Status: Draft
 ```
 

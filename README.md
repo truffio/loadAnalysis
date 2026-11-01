@@ -37,7 +37,7 @@ One command starts the whole tool. The server also serves the web page, so there
 uv run uvicorn ela.api:app
 ```
 
-Open <http://127.0.0.1:8000> in a browser. Choose a definition in the first drop-down list. The sample is `generic_twin`.
+Open <http://127.0.0.1:8000> in a browser. Choose a definition in the first drop-down list, which starts on "Choose a definition…". The sample is `generic_twin`.
 
 The server listens on `127.0.0.1` only, so it can be reached from the same machine and from nowhere else. There is no login. To use another port, add `--port 8080`. Stop the server with Ctrl+C.
 
@@ -47,14 +47,15 @@ In the web page:
 
 - The **Definition** list shows every `*.json` file in the folder. The file name without `.json` is the definition id. **Upload** adds a file from your computer. It is checked first. If it has errors, they are listed and the file is not stored. The stored name keeps letters A to Z, digits, `_` and `-`, and every other character becomes `_`. A name left with nothing but underscores is refused, and so is a name already in use.
 - An invalid definition is never drawn. Its errors are listed with their JSON paths.
-- A bus name too long for its bar is truncated on the drawing. The tooltip has the full name.
+- The drawing shows each element's `name`: a bus's name in its bar, and a source's or TRU's name above its figures. A name too long for its room is cut with an ellipsis (…) and never dropped. The tooltip has the full name and the element's id.
 - Drag the drawing to pan it and use the mouse wheel to zoom.
 - Click a source, TRU or contactor to change its state. Click the switch on a crew-switched bus to turn its loads on or off. Click the RAT to deploy or stow it. Bus bars are not clickable.
-- **Reset** returns every component to its default state. The **Scenario** list applies a scenario to the schematic.
+- **Reset** returns every component to its default state. The **Scenario** list, which starts on "Choose a scenario…", applies a scenario to the schematic.
 - The **Band** list chooses which band the bus labels show: Transient, 5 s or Continuous (the default).
-- Hover over any element for a tooltip with the demand, the demand with margin, the capacity and the remaining margin in all three bands.
-- The status panel shows PASS or FAIL for what is on screen and lists each overload, each configuration error and each unpowered essential load.
-- **Run all scenarios** runs the whole file and shows a results table. Expand a row for its failing elements. Click a row to open that scenario on the schematic. **Export CSV** and **Export JSON** save the results.
+- Hover over any element for a tooltip with the demand, the demand with margin, the capacity and the remaining margin in all three bands. The tooltip of a live bus also has a "Fed by" line, naming the sources and TRUs that feed its island. A battery that is idle because a TRU feeds the island is not listed.
+- The labels on the drawing show power in kW from 1000 W up. The status panel, the tooltips and the detail of a batch row always show W, so that a small overload is not rounded away.
+- The status panel shows PASS or FAIL for what is on screen and lists each overload, each configuration error and each unpowered essential load. If the server cannot analyse a configuration, the verdict reads "Not analysed" and the drawing is faded until an analysis succeeds. The components and the scenario go back to what the faded drawing shows.
+- **Run all scenarios** runs the whole file and shows a results table. Expand a row for its failing elements. Click a row to open that scenario on the schematic. The table names the worst band by its label, such as Transient. **Export CSV** and **Export JSON** save the results with the band keys: `transient`, `short_term` and `continuous`.
 
 The colours are: green for energised, dark grey for de-energised, amber for overloaded in any band, and dark grey with a cross for a failed source or TRU. Contactors also show open or closed by shape.
 

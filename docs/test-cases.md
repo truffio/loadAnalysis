@@ -135,6 +135,10 @@ Hand results. S1: G1 = G2 = 1000/900/800, margin 1900 W 63.33 %, 1510 W 60.4 %, 
 
 **FX-50.** For k = 1 to 6: Gk → ACk, TRUk: ACk → DCk. Ties T12, T23, T34, T45, T56 between adjacent AC buses, all open. BAT → DC6, which has `crew_switch` true. Count: 6 × 7 (G, C_G, AC, TRU_IN, TRU, TRU_OUT, DC) = 42, plus 5 ties = 47, plus BAT and C_BAT = 49, plus 1 crew switch = 50 items.
 
+**FX-50N.** FX-50 with names an operator would give: Gk is `ENGINE k GENERATOR`, BAT is `MAIN BATTERY`, ACk is `AC MAIN BUS k`, DCk is `DC ESS BUS k`, TRUk is `TRU k`. LAk on ACk: 3000 + 500 k W. LDk on DCk: 400 + 100 k W. Scenario S1 `Engine 1 out`: `{"G1": "failed"}`. Still 50 items.
+
+**FX-8ENGN.** FX-ENG(8) with G1 to G8 named `Generator 1` to `Generator 8` and AC1 to AC8 named `AC BUS 1` to `AC BUS 8`, each with a 1000 W load. BAT (named `Main Battery`) → DCBAT (named `DC BAT BUS`, role battery, with `crew_switch`), L 300 W. DC1 (`DC BUS 1`) and DC2 (`DC BUS 2`). TRU1: AC2 → DC1, TRU2: AC3 → DC1, TRU3: AC6 → DC2, TRU4: AC7 → DC2, all η 0.85, cap 5000, named `TRU 1` to `TRU 4`. Ties T12 to T78 between adjacent AC buses, all open. LD1 on DC1: 1500. LD2 on DC2: 900. The shape of a heavy transport: 49 items.
+
 **FX-COLOURS.** G1 cap 100000 → AC1. G2 cap 100000 → AC2, which has capacity 100. G3 cap 100000, `default_state` `failed` → AC3. RAT_AC cap 5000 → ACE. Tie T13 (AC1–AC3), open. TRU1: AC1 → DC1, η 0.85, cap 5000. TRU2: AC3 → DC2, η 0.85, cap 5000. TRU3: AC1 → DC3, η 0.85, cap 5000, `default_state` `failed`. LA1 on AC1: 1000. LA2 on AC2: 1000/50/50. LD on DC1: 850. States shown: AC1 energised, AC2 overloaded in transient only (1100 > 100, 55 ≤ 100), AC3 de-energised, G3 and TRU3 failed, TRU2 de-energised but operative, RAT_AC unavailable.
 
 **FX-TRAN.** G1, G2, G3 cap 100000 → AC1, AC2, AC3. G4 cap 1000 → AC4. AC1, AC2 capacity 1000. `C_G3` capacity 100. LT1 on AC1: 1000/500/100 (1100/550/110, fails transient). LT2 on AC2: 1000/950/100 (1100/1045/110, fails transient and short_term). LT3 on AC3: 500/50/50 (`C_G3` 550/55/55, fails transient). LT4 on AC4: 1000/1000/500 (G4 1100/1100/550, fails transient and short_term).
@@ -378,6 +382,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-LAY-018 | L2-LAY-018 | L2 | Test |
 | TC-LAY-019 | L2-LAY-004 | L2 | Test |
 | TC-LAY-020 | L2-LAY-020 | L2 | Test |
+| TC-LAY-021 | L2-LAY-021 | L2 | Test |
 | TC-API-001 | L2-API-001 | L2 | Test |
 | TC-API-002 | L2-API-002 | L2 | Test |
 | TC-API-003 | L2-API-003 | L2 | Test |
@@ -459,6 +464,9 @@ Each of these is a mutation of FX-SINGLE unless stated.
 | TC-WIN-050 | L2-WIN-055 | L2 | Test |
 | TC-WIN-051 | L2-WIN-056 | L2 | Test |
 | TC-WIN-052 | L2-WIN-057 | L2 | Test |
+| TC-WIN-053 | L2-WIN-058 | L2 | Test |
+| TC-WIN-054 | L2-WIN-059 | L2 | Test |
+| TC-WIN-055 | L2-WIN-060 | L2 | Test |
 | TC-WBT-001 | L2-WBT-001 | L2 | Test |
 | TC-WBT-002 | L2-WBT-002 | L2 | Test |
 | TC-WBT-003 | L2-WBT-003 | L2 | Test |
@@ -1818,8 +1826,8 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 #### TC-LAY-016 — Item size at fit scale
 
-- **Fixture:** FX-50
-- **Steps:** Compute the scale that fits the layout's extents in a 1000 × 560 px drawing area, as min(1000 ÷ extent width, 560 ÷ extent height), and apply it to non-bus items.
+- **Fixture:** FX-50, FX-50N, FX-8ENGN
+- **Steps:** Compute the scale that fits the layout's extents in a 1000 × 560 px drawing area, as min(1000 ÷ extent width, 560 ÷ extent height), and apply it to non-bus items. Also check that every label box lies inside the drawing, meets no other label box and no item, and that no connector crosses it.
 - **Expected:** 50 items, and every non-bus width and height is at least 16 px.
 
 #### TC-LAY-018 — Item size holds in the real drawing area
@@ -1827,6 +1835,12 @@ Each of these is a mutation of FX-SINGLE unless stated.
 - **Fixture:** H-PAGE, FX-50
 - **Steps:** Open at the initial view. Measure `#schematic`, and read each non-bus item's rendered size.
 - **Expected:** `#schematic` measures at least 1000 × 560 px, and every non-bus item's rendered width and height are at least 16 px.
+
+#### TC-LAY-021 — Label boxes hold a name and a load
+
+- **Fixture:** FX-50N, FX-8ENGN
+- **Steps:** `layout` each. For each source and TRU read its label box, and for each bus its `width` and label box.
+- **Expected:** Each source and TRU label box is at least 64 px wide and 36 px high. Each bar is at least min(96, 5.2 × the length of its name + 10) px wide, and each bus label box is at least 76 px wide. The no-overlap rules of TC-LAY-016 hold for both fixtures.
 
 #### TC-LAY-019 — Reversed TRU contactors keep their rows
 
@@ -2063,8 +2077,8 @@ Each of these is a mutation of FX-SINGLE unless stated.
 #### TC-WIN-008 — Switching definition resets the view
 
 - **Fixture:** H-PAGE, FX-BATCH, FX-SINGLE
-- **Steps:** Open FX-BATCH, click G1, choose the 5 s band, pan. Select FX-SINGLE, then FX-BATCH again.
-- **Expected:** Default states, Continuous, no scenario selected and the initial view, both times.
+- **Steps:** Open FX-BATCH, click G1, choose the 5 s band, pan. Select FX-SINGLE, then FX-BATCH again. Then hold the answer to the request for FX-BATCH, select FX-SINGLE, and release the held answer.
+- **Expected:** Default states, Continuous, no scenario selected and the initial view, both times. After the held answer is released FX-SINGLE is still the definition shown, drawn and analysed, and FX-BATCH is not drawn.
 
 #### TC-WIN-009 — SVG at API coordinates
 
@@ -2141,14 +2155,14 @@ Each of these is a mutation of FX-SINGLE unless stated.
 #### TC-WIN-021 — Bus labels show throughput and only on live buses
 
 - **Fixture:** H-PAGE, H-DEFS with FX-THROUGH
-- **Steps:** Read `[data-label]` of AC1, AC2, DC1 in Continuous. Then click G1.
-- **Expected:** AC1: 115 V, 7.25 A, 2.50 kW (demand 2500 W, not own 1000 W). DC1: 28 V, 30.36 A, 850 W. After the click, no bus shows a value label.
+- **Steps:** Read `[data-label]` of AC1, AC2, DC1 in Continuous. Then click G1. On FX-SINGLE, choose each band in turn and read the label of AC1 and DC1.
+- **Expected:** AC1: 115 V, 7.25 A, 2.50 kW (demand 2500 W, not own 1000 W). DC1: 28 V, 30.36 A, 850 W. After the click, no bus shows a value label. On FX-SINGLE each band shows its own current, the three values differing, equal to the `current` of that band in the analysis result.
 
 #### TC-WIN-022 — Band selector
 
 - **Fixture:** H-PAGE, FX-SINGLE, then FX-SINGLE with label `Peak` on `transient`
-- **Steps:** Read `#band-select`. Choose Transient. Read the log.
-- **Expected:** Options Transient, 5 s, Continuous, with Continuous selected. AC1 shows 4.00 kW. No analyse request is sent. The second copy lists `Peak`.
+- **Steps:** Read `#band-select`. Choose Transient. Read the log. Then choose each option by its visible label, 5 s, Transient and Continuous, reading the label and the tooltip of AC1.
+- **Expected:** Options Transient, 5 s, Continuous, with Continuous selected. AC1 shows 4.00 kW. No analyse request is sent. The second copy lists `Peak`. Choosing by label gives the band of that name: 5 s selects `short_term` and AC1 shows 3.10 kW, Transient selects `transient` and 4.00 kW, Continuous selects `continuous` and 2.00 kW, and the tooltip rows stay in the order Transient, 5 s, Continuous.
 
 #### TC-WIN-023 — Power display threshold
 
@@ -2232,7 +2246,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 - **Fixture:** H-PAGE, FX-BATCH, FX-SAMPLE
 - **Steps:** Read `#scenario-select`. Click G2 to fail it, and choose S5. Open the sample and choose S07, then S13.
-- **Expected:** 5 entries by name. G2 is `operative` again, as S5 does not list it. Verdict FAIL, as hand-worked in the FX-BATCH table, and T13 is `closed`. The sample's verdicts are those in `tests/data/generic_twin_expected.json`: S07 PASS, S13 FAIL.
+- **Expected:** The placeholder `Choose a scenario…` and then 5 entries by name. G2 is `operative` again, as S5 does not list it. Verdict FAIL, as hand-worked in the FX-BATCH table, and T13 is `closed`. The sample's verdicts are those in `tests/data/generic_twin_expected.json`: S07 PASS, S13 FAIL.
 
 #### TC-WIN-046 — A schematic click clears a stale scenario selection
 
@@ -2292,7 +2306,7 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 - **Fixture:** None
 - **Steps:** Map each C-WEBINT requirement on page behaviour to its collected tests. Run `pytest tests -m "e2e and not meta"` in a subprocess.
-- **Expected:** Each has at least one `e2e` test, and the selection passes. L2-WIN-048 to L2-WIN-052 are not page behaviour and are excluded. L2-WIN-053 is included.
+- **Expected:** Each has at least one `e2e` test, and the selection passes. L2-WIN-048 to L2-WIN-052 are not page behaviour and are excluded. Every other C-WEBINT requirement is included, so L2-WIN-053 and every later one, and the check names them.
 
 #### TC-WIN-045 — Playwright is dev-only
 
@@ -2310,25 +2324,43 @@ Each of these is a mutation of FX-SINGLE unless stated.
 
 - **Fixture:** H-PAGE, FX-SAMPLE, with all five AC source contactors opened on the schematic
 - **Steps:** Hover DC ESS, then DC BUS 1.
-- **Expected:** DC ESS: a "Fed by" line reading BAT. DC BUS 1 is dead, and shows no such line.
+- **Expected:** DC ESS: a "Fed by" line reading Main Battery, the name of BAT, and the `fed_by` of the analysis is `["BAT"]`. DC BUS 1 is dead, and shows no such line. On FX-BAT, with names for TRU1 and BAT, DC1 and DCB read the name of TRU1 alone, as the idle battery is not listed. After G1 fails, DCB reads the name of BAT. On FX-BAT2 with names, each bus lists both batteries by name in id order.
 
 #### TC-WIN-050 — A failed analysis shows Not analysed
 
 - **Fixture:** H-PAGE, FX-SINGLE, with the analyse route failing on request
-- **Steps:** Open the fixture, then click G1 while the route fails. Let the route recover and click G1 again.
-- **Expected:** `#status-verdict` reads "Not analysed" and the schematic is marked stale. After the recovery the verdict is back and the mark is gone.
+- **Steps:** Open the fixture, then click G1 while the route fails. Read the drawing, choose the 5 s band, then let the route recover and click G1 again. Then, on FX-BATCH, choose S2, make the route fail by dropping the connection, and choose S5.
+- **Expected:** `#status-verdict` reads "Not analysed", `#schematic` has `data-stale` true, the message says the configuration was not analysed, and the status list is empty. G1 still shows `operative`, as in the last good answer, and choosing the 5 s band does not bring the old verdict back. After the recovery the click sends `{"G1": "failed"}`, the verdict is back and the mark is gone. In FX-BATCH the scenario list still shows S2, which is what is drawn, and when the route recovers choosing S5 gives FAIL.
 
 #### TC-WIN-051 — Status panel and tooltips stay in W
 
 - **Fixture:** H-PAGE, FX-BATCH
 - **Steps:** Choose S5. Read the status panel, the tooltip of G1 and the bus label of AC1.
-- **Expected:** The panel and tooltip show 3300 W and 3000 W, with no kW. The bus label follows the kW rule of L2-WIN-025.
+- **Expected:** The panel and tooltip show 3300 W and 3000 W, with no kW. The bus label follows the kW rule of L2-WIN-025. On a definition with G1 of capacity 1100 and a load of 1000.4 W, the panel shows 1100.44 W against 1100 W, the tooltips of G1 and AC1 show 1000.4 W, 1100.44 W and `-0.44 W (-0.04 %)`, and the labels show 1.00 kW.
 
 #### TC-WIN-052 — Selects have a placeholder
 
 - **Fixture:** H-PAGE, FX-BATCH
 - **Steps:** Load the page with no definition open. Read `#definition-select`. Open the fixture and read `#scenario-select`.
-- **Expected:** Each shows a placeholder option that is not a definition or scenario.
+- **Expected:** Each shows a placeholder option, `Choose a definition…` and `Choose a scenario…`, with the empty value, listed first and not a definition or scenario. It is the one selected before a choice, after Reset for the scenario, and after the definition list is set back to it, which closes the definition.
+
+#### TC-WIN-053 — Names are drawn, cut with an ellipsis, with the id in the tooltip
+
+- **Fixture:** H-PAGE, FX-SINGLE with names: G1 `Engine driven generator number one on the left wing`, AC1 `AC MAIN DISTRIBUTION BUS WITH A VERY LONG NAME`, TRU1 `Main TRU`, DC1 `DC 1`. Also FX-SINGLE with G1 `Generator 1` and AC1 `AC BUS 1`.
+- **Steps:** Open. Read each `[data-name]` text and measure it. Hover G1, AC1 and TRU1.
+- **Expected:** TRU1 shows `Main TRU` and DC1 `DC 1`, and no id is drawn as a name. G1 and AC1 show the start of their names followed by `…`, inside their label box and bar. The tooltip title is the full name and its Id fact is the id. `Generator 1` and `AC BUS 1` are drawn whole. A text cut to a narrower room is shorter, always ends with `…`, and is never empty.
+
+#### TC-WIN-054 — No text overlaps, is clipped or is dropped
+
+- **Fixture:** H-PAGE, FX-50N and FX-8ENGN, each also with G1 and G3 failed or G2 failed. FX-50N with the capacity of G2 and of AC3 low in `transient` only.
+- **Steps:** Open at 1366 × 768 px. Choose Continuous, then Transient. Measure the box of every text in the drawing, in layout units, and of every symbol.
+- **Expected:** No two texts overlap, no text overlaps a symbol other than its own bus bar, and no text lies outside the layout's width and height. Every source, TRU and bus has a name text, equal to its name or the start of it with `…`, and every bus name is whole. Every text lies inside the box the layout gave it. The `over:` line of an overloaded element still touches nothing.
+
+#### TC-WIN-055 — Numbers at the extremes
+
+- **Fixture:** H-PAGE, FX-SINGLE with `safety_margin` 1e12, load LA 1e12 W in each band and G1 capacity 1e-300 in each band
+- **Steps:** Call `fmtFixed`, `fmtNum` and `fmtPower` of `web/schematic.js` on 1e21, 1e24, -1.2345e25, 1.5e300, 1e20, 5e-324, 1e-300, infinity, NaN, null and undefined. Open the fixture and read the status list, the tooltip of G1 and the labels.
+- **Expected:** `fmtFixed` gives `1.00e+21`, `1.00e+24`, `-1.23e+25`, `1.50e+300`, `100000000000000000000.00` for 1e20, and `0.00` for the small ones. `fmtNum` gives `1e+21` and so on, and `0` for the small ones. `fmtPower` gives `1.00e+24 W` and `0 W`. Infinity, NaN, null and undefined give `—`. The page raises no error, the verdict is FAIL, and the status list and tooltip show `e+24` and no NaN, undefined or Infinity.
 
 ### C-WEBBAT
 
