@@ -4,8 +4,11 @@
 range across the whole document. It then runs the checks that span elements over the raw document,
 so one broken element never hides a fault in another. Those checks skip any element or reference
 that is already reported, which keeps each fault to one error.
+
+`parse_json` turns raw bytes into a document, for the CLI and the API alike (DD-028).
 """
 
+import json
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -48,6 +51,47 @@ class ValidationResult:
     errors: list[Issue] = field(default_factory=list)
     warnings: list[Issue] = field(default_factory=list)
     definition: Definition | None = None
+
+
+class _Parsed(dict):
+    """A JSON object that keeps every key and value as written, repeated keys included."""
+
+    def __init__(self, pairs):
+        super().__init__(pairs)
+        self.pairs = pairs
+
+
+def parse_json(raw: bytes) -> tuple[object, list[Issue]]:
+    """The document in a file or request body, and what stops it being used (DD-028).
+
+    A byte order mark is accepted. Bad UTF-8 or bad JSON is one issue at `$`, and each repeated key
+    is an issue at its own path. With any issue the document is None.
+    """
+    try:
+        doc = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=_Parsed)
+    except (ValueError, RecursionError) as exc:  # bad UTF-8 and bad JSON are both ValueError
+        return None, [Issue("$", f"not valid JSON: {exc}")]
+    issues = _repeated_keys(doc)
+    return (None if issues else doc), issues
+
+
+def _repeated_keys(doc) -> list[Issue]:
+    """An issue for each repeat of a key, including those inside an overwritten value."""
+    issues, pending = [], [("$", doc)]
+    while pending:  # by hand, since deep documents would exhaust a recursive walk
+        path, node = pending.pop()
+        children = []
+        if isinstance(node, _Parsed):
+            seen = set()
+            for key, value in node.pairs:
+                if key in seen:
+                    issues.append(Issue(f"{path}.{key}", f"key '{key}' is repeated"))
+                seen.add(key)
+                children.append((f"{path}.{key}", value))
+        elif isinstance(node, list):
+            children = [(f"{path}[{i}]", value) for i, value in enumerate(node)]
+        pending += reversed(children)
+    return issues
 
 
 def validate(doc) -> ValidationResult:
@@ -150,6 +194,7 @@ class _Checks:
 
     def run(self):
         self._report_repeated_ids()
+        self._check_switch_ids()
         self._check_sources()
         self._check_load_references()
         self._check_trus()
@@ -160,6 +205,7 @@ class _Checks:
         self._warn_voltage_mismatch()
         self._warn_unconnected()
         self._warn_no_essential_load()
+        self._warn_no_scenarios()
 
     def _error(self, path, message):
         self.result.errors.append(Issue(path, message))
@@ -192,6 +238,17 @@ class _Checks:
             if id_ in seen:
                 self._error(f"$.scenarios[{i}].id", f"scenario id '{id_}' is already used")
             seen.add(id_)
+
+    def _check_switch_ids(self):
+        """The drawing and clicks use `<bus>_switch` for a crew switch (DD-027)."""
+        switches = {
+            f"{b['id']}_switch": b["id"]
+            for _, b in _indexed(self.doc.get("buses"))
+            if b.get("crew_switch") is True and _str(b.get("id")) is not None
+        }
+        for id_, path in self._ids():
+            if id_ in switches:
+                self._error(path, f"id '{id_}' is reserved for the crew switch of '{switches[id_]}'")
 
     # --- Sources ---
 
@@ -442,3 +499,7 @@ class _Checks:
             load.get("essential") is True for _, load in _indexed(loads)
         ):
             self._warn("$.loads", "no load is marked essential, so total power loss still passes")
+
+    def _warn_no_scenarios(self):
+        if self.doc.get("scenarios") == []:
+            self._warn("$.scenarios", "no scenarios, so a batch run checks nothing")

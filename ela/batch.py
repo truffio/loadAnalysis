@@ -25,6 +25,8 @@ SUMMARY_FIELDS = (
     "unpowered_essential",
 )
 DETAIL_FIELDS = ("overload_details", "error_messages", "unpowered_details", "warnings")
+TEXT_FIELDS = ("scenario_id", "name", "result", "worst_element", "worst_band")
+FORMULA_STARTS = ("=", "+", "-", "@")  # DD-034
 
 
 def run_batch(defn) -> list[dict]:
@@ -73,14 +75,22 @@ def summary_cells(result: dict) -> list[str]:
     return cells
 
 
+def _spreadsheet_safe(field_name: str, cell: str) -> str:
+    """A text cell a spreadsheet would run as a formula, prefixed with `'` (DD-034)."""
+    if field_name in TEXT_FIELDS and cell.startswith(FORMULA_STARTS):
+        return f"'{cell}"
+    return cell
+
+
 def to_csv(results: list[dict]) -> str:
     """One header row and one row per scenario. A null is an empty cell, the margin has at most
-    2 decimals (rounded half up), and records end in "\\n"."""
+    2 decimals (rounded half up), a text cell is spreadsheet-safe, and records end in "\\n"."""
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(SUMMARY_FIELDS)
     for result in results:
-        writer.writerow(summary_cells(result))
+        cells = zip(SUMMARY_FIELDS, summary_cells(result), strict=True)
+        writer.writerow(_spreadsheet_safe(name, cell) for name, cell in cells)
     return out.getvalue()
 
 

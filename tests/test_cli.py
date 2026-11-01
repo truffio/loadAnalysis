@@ -210,3 +210,47 @@ def test_runtime_and_dependency_management():
         ["uv", "sync", "--locked"], cwd=ROOT, capture_output=True, text=True, check=False
     )
     assert out.returncode == 0, out.stderr
+
+
+@pytest.mark.tc("TC-CLI-012")
+def test_byte_order_mark_is_accepted(tmp_path):
+    path = tmp_path / "bom.json"
+    path.write_text(json.dumps(fx("FX-ALLPASS")), encoding="utf-8-sig")
+    out = run(["batch", path])
+    assert out.returncode == 0, out.stderr
+    assert len(lines(out.stdout)) == 2
+
+
+@pytest.mark.tc("TC-CLI-012")
+def test_repeated_key_is_an_error_at_its_path(tmp_path):
+    path = tmp_path / "repeat.json"
+    text = json.dumps(fx("FX-ALLPASS")).replace(
+        '"safety_margin": 0.1', '"safety_margin": 0.1, "safety_margin": 0'
+    )
+    path.write_text(text, encoding="utf-8")
+    out = run(["batch", path])
+    assert out.returncode == 2
+    assert out.stdout == ""
+    assert lines(out.stderr)[0].startswith("$.settings.safety_margin: ")
+    assert "Traceback" not in out.stderr
+
+
+@pytest.mark.tc("TC-CLI-013")
+def test_no_scenarios_warns_and_exits_0(tmp_path):
+    out = run(["batch", write(tmp_path, fx("FX-SINGLE-E") | {"scenarios": []})])
+    assert out.returncode == 0
+    assert out.stdout == ""
+    assert [line for line in lines(out.stderr) if line.startswith("warning: $.scenarios: ")]
+
+
+@pytest.mark.tc("TC-CLI-014")
+def test_an_extreme_definition_gives_a_clean_run(tmp_path):
+    doc = fx("FX-SINGLE-E")
+    doc["sources"][0]["capacity"] = {"transient": 1e-300, "short_term": 1, "continuous": 1}
+    doc["trus"][0]["efficiency"] = 1e-300
+    doc["loads"][1]["power"] = {"transient": 1e12, "short_term": 1e12, "continuous": 1e12}
+    out = run(["batch", write(tmp_path, doc), "--csv", tmp_path / "o.csv", "--json", tmp_path / "o.json"])
+    assert out.returncode == 1, out.stderr
+    assert "Traceback" not in out.stderr
+    assert (tmp_path / "o.csv").is_file() and (tmp_path / "o.json").is_file()
+    assert out.stdout.split("\t")[2] == "FAIL"

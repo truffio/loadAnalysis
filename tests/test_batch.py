@@ -12,7 +12,8 @@ import sys
 from pathlib import Path
 
 import pytest
-from conftest import fx
+from conftest import ac, c, definition, fx, gen, load, tri
+from conftest import scenario as make_scenario
 
 import ela.batch
 from ela.batch import SUMMARY_FIELDS, run_batch, to_csv, to_json, write_csv, write_json
@@ -260,3 +261,62 @@ def test_null_worst_values_in_exports(tmp_path):
 )
 def test_format_pct_rounds_half_up_with_ascii_minus(value, text):
     assert format_pct(value) == text
+
+
+@pytest.mark.tc("TC-BAT-012")
+@pytest.mark.parametrize("start", ["=", "+", "-", "@"])
+def test_text_cells_are_spreadsheet_safe(start):
+    doc = definition(
+        [gen(1, 1000)],
+        [ac("AC1")],
+        [],
+        [c("G1", "AC1")],
+        [load("L", "AC1", 2000)],
+        [make_scenario(f"{start}id", {}, f"{start}1+1")],
+    )
+    doc["sources"][0]["id"] = f"{start}gen"
+    doc["contactors"][0]["from"] = f"{start}gen"
+    doc["contactors"][0]["id"] = "CONT"
+    results = run_batch(validate(doc).definition)
+    row = dict(zip(SUMMARY_FIELDS, csv_rows(to_csv(results))[1], strict=True))
+    assert row["scenario_id"] == f"'{start}id"
+    assert row["name"] == f"'{start}1+1"
+    assert row["worst_element"] == f"'{start}gen"
+    assert row["smallest_margin_pct"] == "-120"  # (1000 - 2000 × 1.1) ÷ 1000
+    assert row["overloads"] == "3"
+    assert json.loads(to_json(results))[0]["scenario_id"] == f"{start}id"
+
+
+@pytest.mark.tc("TC-BAT-012")
+def test_harmless_text_and_numbers_are_unchanged():
+    rows = csv_rows(to_csv(run_batch(validate(fx("FX-BATCH")).definition)))
+    assert rows[1][:3] == ["S1", "Normal", "PASS"]
+    assert rows[5][1] == 'Overload, tie to "AC3" — T13'
+    assert rows[5][5] == "-46.67"
+
+
+@pytest.mark.tc("TC-BAT-013")
+@pytest.mark.parametrize(
+    "value, text",
+    [
+        (-1e26, "-1" + "0" * 26),
+        (1e60, "1" + "0" * 60),
+        (-1e282, "-1" + "0" * 282),
+    ],
+)
+def test_format_pct_takes_any_finite_margin(value, text):
+    assert format_pct(value) == text
+
+
+@pytest.mark.tc("TC-BAT-013")
+def test_export_of_an_extreme_margin():
+    doc = fx("FX-MARGIN")
+    doc["sources"][0]["capacity"] = tri(1e-300)
+    results = run_batch_on(doc)
+    assert float(csv_rows(to_csv(results))[1][5]) < -1e279
+    assert json.loads(to_json(results))[0]["result"] == "FAIL"
+
+
+def run_batch_on(doc):
+    doc["scenarios"] = [make_scenario("S1", {})]
+    return run_batch(validate(doc).definition)

@@ -15,7 +15,6 @@ import pytest
 from conftest import REPO, contrast, fx, hue_sat, put_def, setp
 from playwright.sync_api import expect
 
-from ela.batch import run_batch
 from ela.format import format_pct
 from ela.layout import layout
 from ela.validate import validate
@@ -892,9 +891,19 @@ def test_load_scenario(h_page, defs_dir):
     h.page.select_option("#scenario-select", "S5")
     expect(h.group("G2")).to_have_attribute("data-state", "operative")
     expect(h.group("T13")).to_have_attribute("data-state", "closed")
-    batch = {r["scenario_id"]: r for r in run_batch(validate(fx("FX-BATCH")).definition)}
-    expect(h.page.locator("#status-verdict")).to_have_text(batch["S5"]["result"])
+    expect(h.page.locator("#status-verdict")).to_have_text("FAIL")  # hand-worked in FX-BATCH
     assert h.page.input_value("#scenario-select") == "S5"
+
+
+@pytest.mark.tc("TC-WIN-036")
+@pytest.mark.parametrize("scenario_id", ["S07", "S13"])
+def test_load_scenario_gives_the_hand_calculated_verdict(h_page, scenario_id):
+    hand = json.loads((REPO / "tests" / "data" / "generic_twin_expected.json").read_text("utf-8"))
+    h = h_page()
+    h.open("generic_twin")
+    h.page.select_option("#scenario-select", scenario_id)
+    verdict = h.page.locator("#status-verdict")
+    expect(verdict).to_have_text(hand["scenarios"][scenario_id]["result"])
 
 
 @pytest.mark.tc("TC-WIN-046")

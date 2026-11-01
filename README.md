@@ -45,8 +45,9 @@ The server reads definitions from the `definitions/` folder in the repository ro
 
 In the web page:
 
-- The **Definition** list shows every `*.json` file in the folder. The file name without `.json` is the definition id. **Upload** adds a file from your computer. It is checked first. If it has errors, they are listed and the file is not stored. A name already in use is refused.
+- The **Definition** list shows every `*.json` file in the folder. The file name without `.json` is the definition id. **Upload** adds a file from your computer. It is checked first. If it has errors, they are listed and the file is not stored. The stored name keeps letters A to Z, digits, `_` and `-`, and every other character becomes `_`. A name left with nothing but underscores is refused, and so is a name already in use.
 - An invalid definition is never drawn. Its errors are listed with their JSON paths.
+- A bus name too long for its bar is truncated on the drawing. The tooltip has the full name.
 - Drag the drawing to pan it and use the mouse wheel to zoom.
 - Click a source, TRU or contactor to change its state. Click the switch on a crew-switched bus to turn its loads on or off. Click the RAT to deploy or stow it. Bus bars are not clickable.
 - **Reset** returns every component to its default state. The **Scenario** list applies a scenario to the schematic.
@@ -83,7 +84,7 @@ To save the results, add `--csv` and `--json`. Each takes the path of the file t
 uv run ela batch definitions/generic_twin.json --csv results.csv --json results.json
 ```
 
-The CSV has the nine columns above. The JSON has the same nine fields for each scenario and also the lists of overloads, error messages, unpowered loads and warnings at full precision.
+The CSV has the nine columns above. A text cell starting with `=`, `+`, `-` or `@` gets a `'` in front, so that a spreadsheet does not run it as a formula (DD-034). Numbers are unchanged. The JSON has the same nine fields for each scenario and also the lists of overloads, error messages, unpowered loads and warnings at full precision.
 
 Exit codes:
 
@@ -93,7 +94,7 @@ Exit codes:
 | 1 | At least one scenario fails. |
 | 2 | The definition is invalid, the file cannot be read or is not JSON, or the command is used wrongly. |
 
-For an invalid definition, every error is printed on standard error with its JSON path, and no scenario is run. The sample deliberately contains failing scenarios, so the command above exits with 1.
+For an invalid definition, every error is printed on standard error with its JSON path, and no scenario is run. The sample deliberately contains failing scenarios, so the command above exits with 1. A definition with no scenarios exits with 0 and a warning, since nothing was checked.
 
 ### HTTP API
 
@@ -102,20 +103,22 @@ The web page uses these routes, and you can call them from scripts. Errors are `
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/api/definitions` | List the definitions. |
-| POST | `/api/definitions` | Upload a definition (multipart field `file`). 201 when stored, 422 when invalid, 409 when the name is taken. |
+| POST | `/api/definitions` | Upload a definition (multipart field `file`). 201 when stored, 422 when invalid, 409 when the name is taken, 413 over 10 MB. |
 | GET | `/api/definitions/{id}` | The definition with its schematic layout. |
-| POST | `/api/definitions/{id}/analyse` | Body `{"states": {...}}`. Returns the analysis of that configuration. |
+| POST | `/api/definitions/{id}/analyse` | Body `{"states": {...}}`. Returns the analysis of that configuration. 413 over 10 MB. |
 | POST | `/api/definitions/{id}/batch` | Run every scenario. |
 | GET | `/api/definitions/{id}/batch/export?format=csv` or `json` | The last batch results of that definition. 404 before any run. |
+
+Every route answers local requests only (DD-029). A `Host` other than `localhost`, `127.0.0.1` or `[::1]` gets 400. A request with an `Origin` header naming anything else gets 403, so a website open in your browser cannot drive the server. A script that sends no `Origin` header is served. The limit of 10 MB is 10,000,000 bytes. A file system failure gets 500. All of these use the error shape above.
 
 ## How the analysis works
 
 For each configuration the tool does this, once per time band:
 
-1. **Energisation.** A component is energised if a path leads to it from an operative source through closed contactors and energised TRUs. A failed source supplies nothing. TRUs pass power from AC to DC only.
+1. **Energisation.** A component is energised if a path leads to it from an operative source through closed contactors and energised TRUs. A failed source supplies nothing. TRUs pass power from AC to DC only. A DC bus can be live below a dead TRU when a battery reaches it through ties. Each bus reports what feeds it as `fed_by`: the sources and TRUs feeding its island, sorted by id. It is empty on a dead bus, and an idle battery is not in it (DD-030).
 2. **Loads.** Loads are always on. A load draws power when its bus is energised. A crew-switched bus whose switch is off passes no load, but the bus can still be energised.
 3. **Demand.** Demand flows upstream from each bus to the source feeding it. Across a TRU the input power is the output power divided by the efficiency.
-4. **Source rules.** Two AC sources joined by closed contactors are paralleled. That is a configuration error and the scenario fails. TRUs and DC RAT outputs that feed the same DC island share its demand in proportion to their continuous capacity. A battery supplies only when it is the only source on its island.
+4. **Source rules.** Two AC sources joined by closed contactors are paralleled. That is a configuration error and the scenario fails. TRUs and DC RAT outputs that feed the same DC island share its demand in proportion to their continuous capacity. A battery supplies only when no TRU or DC RAT output feeds its island. Two or more batteries that are then the only sources share the demand the same way (DD-006).
 5. **Check.** For every element that has a capacity and every band, `demand × (1 + safety_margin) ≤ capacity`. An element with no capacity is not checked. A failing band is an overload. The remaining margin is `capacity − demand × (1 + safety_margin)`, in watts and as a percentage of capacity. The smallest percentage in a configuration names its worst element.
 6. **Current.** DC current is `P / V`. AC current is per phase, `P / (phases × V)`, with power factor 1.0. For an AC bus `voltage` is the phase voltage.
 
@@ -130,7 +133,9 @@ Two rules depart from the specification (`docs/spec.md`):
 
 One file describes one aircraft. It is a JSON object with these top-level keys, all required: `meta`, `settings`, `sources`, `buses`, `trus`, `contactors`, `loads` and `scenarios`. Use an empty list where you have none of a kind.
 
-Units: power and capacity are in **watts**, voltage is in **volts**, and the safety margin and the TRU efficiency are **decimals** (0.10 means 10 %). Every `id` must be unique across `sources`, `buses`, `trus`, `contactors` and `loads`. Scenario ids must be unique among scenarios. An `id` is the key other elements use to refer to it. A `name` is the text shown to people.
+Units: power and capacity are in **watts**, voltage is in **volts**, and the safety margin and the TRU efficiency are **decimals** (0.10 means 10 %). Every `id` must be unique across `sources`, `buses`, `trus`, `contactors` and `loads`. Scenario ids must be unique among scenarios. An `id` is the key other elements use to refer to it. A `name` is the text shown to people. The id `<bus>_switch` is reserved for the crew switch of a bus with `crew_switch: true` (DD-027).
+
+A file is UTF-8 JSON, with or without a byte order mark. A key repeated within one object is an error, and no number may be above 1e12 in magnitude (DD-028).
 
 The validator returns all errors at once, each with its JSON path and a message. It does not open an invalid file.
 
@@ -257,8 +262,9 @@ A key that matches no component with a state, or a value that is not valid for i
 
 These are errors and stop the file from loading:
 
-- A missing required key, a wrong type or a number out of range.
-- A repeated id.
+- A missing required key, a wrong type or a number out of range, including any number above 1e12 in magnitude.
+- A key repeated within one object.
+- A repeated id, or an id equal to `<bus>_switch` for a crew-switched bus.
 - A reference to something that does not exist, such as a load on an unknown bus.
 - A TRU that is connected DC to AC, a contactor between an AC node and a DC node, or a contactor of the wrong kind for the nodes it joins.
 - A second APU generator, two generators for one engine, or a source whose `output` does not suit its `kind`.
@@ -272,6 +278,7 @@ These are warnings. They are shown but do not block the file:
 - A source with no contactor.
 - A bus that no source can feed.
 - No load is marked essential. Total power loss would still pass.
+- The file has no scenarios. A batch run checks nothing.
 
 ## Adding a new aircraft
 
@@ -281,8 +288,8 @@ You do not change the tool. You write a new definition file.
 2. Edit `meta` and `settings`. Set the global `safety_margin`.
 3. List the `sources`: one engine generator per engine (numbered with `engine`), the APU generator if there is one, the RAT outputs and the batteries. Give each a capacity in all three bands and a `default_state`.
 4. List the `buses` with their `type`, `role` and nominal voltage. Set `crew_switch: true` on a bus whose loads the crew switch on, usually the battery bus. Add a `capacity` to any bus that has a rating.
-5. List the `trus` and, for each one, the two `tru` contactors.
-6. List the `contactors`: one `source` contactor wherever a source connects to a bus, and a `bus_tie` for every tie between buses. Choose each `default_state` so that the default configuration is sound. In particular do not leave two AC sources joined by closed contactors.
+5. List the `trus`. Each one needs two `tru` contactors, which go in the `contactors` list in the next step.
+6. List the `contactors`: one `source` contactor wherever a source connects to a bus, two `tru` contactors for each TRU, and a `bus_tie` for every tie between buses. Choose each `default_state` so that the default configuration is sound. In particular do not leave two AC sources joined by closed contactors.
 7. List the `loads` with their power in all three bands.
 8. Mark the loads needed for continued safe flight with `"essential": true`. Be careful with what each configuration can power. With no AC on battery (see Known limits), an essential load on an AC bus fails every battery-only scenario.
 9. Write the `scenarios`: the normal case, each generator loss, the APU only, loss of generators and APU, each TRU failure, the RAT only, battery only, and so on.
@@ -299,14 +306,14 @@ If there are errors, the exit code is 2 and each error is printed with its JSON 
 
 ## Known limits
 
-- **Meshed islands (DD-004).** The specification assumes power reaches a bus along a single path. When closed contactors form a loop, the split of power around the loop cannot be found without impedances, and impedances are out of scope. The tool picks a deterministic spanning tree of the island (breadth-first from the source with the lowest id, neighbours in id order). The contactors left out carry zero, and a `meshed_island` warning names them. Totals per bus and source are not affected, but the flow shown on a contactor in a loop is an assumption.
+- **Meshed islands (DD-004).** The specification assumes power reaches a bus along a single path. When closed contactors form a loop, the split of power around the loop cannot be found without impedances, and impedances are out of scope. The tool picks a deterministic spanning tree of the island (breadth-first from the source with the lowest id, neighbours in id order). The contactors left out carry zero, and a `meshed_island` warning names them, on a paralleled island too. Source totals are not affected, but the flow shown on a contactor in a loop and the throughput of a bus on a loop are assumptions, and they depend on ids. So a rated bus or contactor on a closed loop is reported and checked at the island's total demand, which is its own loads plus TRU input power on that island, per band (DD-026). That total is an upper bound, so the result errs safe, and the warning names each such element. A contactor is on a loop if its ends stay connected without it, and a bus is on a loop if such a contactor joins it. An unrated element keeps the tree flow. A paralleled island has no flow to check, so DD-005 applies there instead.
 - **No AC on battery (DD-019).** The component model has no inverter, and DC to AC conversion is not allowed. With only the battery, every AC bus is dead. Essential loads on an AC bus cannot be powered in that configuration.
 - **No endurance check.** Batteries are checked for power in the three bands only. There is no amp-hour, depletion or endurance calculation.
 - **No automatic reconfiguration.** Every configuration is static and planned in advance as a scenario.
 - **Paralleled AC (DD-005).** An AC island with more than one live source is reported as a configuration error. Its buses stay energised and its loads count, but no demand is given to its sources and contactors, so they are not checked.
 - **Static and simple.** Loads are always on, with no flight phases. Voltage is constant. There is no time-domain simulation. AC power factor is 1.0.
 - **Reference methodology only.** The tool follows the summation method of MIL-E-7016F and ASTM F2490 as a reference. It is not certified and does not claim compliance with either document. Its results are not certification evidence.
-- **Local use.** The server has no authentication and listens on the loopback address only. The page does not edit a definition. Edit the JSON file by hand.
+- **Local use.** The server has no authentication, listens on the loopback address only and answers only local requests. The page does not edit a definition. Edit the JSON file by hand.
 
 ## Running the tests
 

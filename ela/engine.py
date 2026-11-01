@@ -16,6 +16,9 @@ from ela.model import BAND_NAMES, Definition
 TOLERANCE_W = 1e-6  # DD-023
 TOLERANCE_PCT = 1e-6  # DD-023
 LIVE_STATES = ("operative", "available")
+# A tiny divisor can overflow a ratio even under DD-028's cap. This keeps every figure finite, with
+# room for the sums and the margin applied to it.
+FIGURE_LIMIT = 1e280
 
 
 def _no_figures():
@@ -43,6 +46,7 @@ class BusRecord(ElementRecord):
     own: dict = field(default_factory=_no_figures)
     voltage: dict = field(default_factory=_no_figures)
     current: dict = field(default_factory=_no_figures)
+    fed_by: list = field(default_factory=list)
 
 
 @dataclass
@@ -131,6 +135,11 @@ def _zero():
     return dict.fromkeys(BAND_NAMES, 0.0)
 
 
+def _ratio(top, bottom):
+    """`top / bottom`, held to FIGURE_LIMIT when a tiny divisor would overflow it."""
+    return max(-FIGURE_LIMIT, min(FIGURE_LIMIT, top / bottom))
+
+
 class _Analysis:
     def __init__(self, defn: Definition, states: dict):
         self.defn = defn
@@ -156,6 +165,7 @@ class _Analysis:
         self.source_demand = {s: _zero() for s in self.live}
         self.leaving = {b: _zero() for b in self.buses}
         self.flow = {}
+        self.loop_demand = {}  # rated element on a closed loop to its island's total (DD-026)
         self.warnings = []
         self.config_errors = []
         self._solve_islands()
@@ -255,8 +265,9 @@ class _Analysis:
                     f"AC sources paralleled: {', '.join(island.sources)} "
                     f"on {', '.join(island.buses)}"
                 )
+                self._warn_left_out(island)
                 continue
-            self._solve_flow(island, self._share_demand(island))
+            self._solve_flow(island, *self._share_demand(island))
 
     def _node_demand(self, bus):
         """Power a bus itself draws: own loads plus the input power of TRUs on it."""
@@ -274,7 +285,10 @@ class _Analysis:
         return element.capacity.continuous
 
     def _share_demand(self, island):
-        """Split an island's demand over its feeders (DD-006). Returns each node's injection."""
+        """Split an island's demand over its feeders (DD-006).
+
+        Returns each node's injection and the island's total demand.
+        """
         total = _sum([self._node_demand(b) for b in island.buses] or [_zero()])
         feeders = self._feeders(island)
         capacities = {f: self._continuous_capacity(f) for f in feeders}
@@ -286,20 +300,25 @@ class _Analysis:
             if feeder in self.trus:
                 self.tru_output[feeder] = injection[feeder]
                 efficiency = self.trus[feeder].efficiency
-                self.tru_input[feeder] = {b: v / efficiency for b, v in injection[feeder].items()}
+                self.tru_input[feeder] = {
+                    b: _ratio(v, efficiency) for b, v in injection[feeder].items()
+                }
             else:
                 self.source_demand[feeder] = injection[feeder]
-        return injection
+        return injection, total
 
-    def _spanning_tree(self, island):
-        """Breadth-first tree from the lowest id source (DD-004), and the contactors left out."""
-        root = min(island.sources + island.feeding_trus)
+    def _island_graph(self, island):
+        """Each node's neighbours on an island, with its feeding TRUs as leaves."""
         adjacent = {n: list(self.adjacent[n]) for n in island.buses + island.sources}
         for tru_id in island.feeding_trus:
             bus, contactor = self.trus[tru_id].output_bus, self.tru_out[tru_id]
             adjacent[tru_id] = [(bus, contactor)]
             adjacent[bus] = sorted([*adjacent[bus], (tru_id, contactor)])
+        return adjacent
 
+    def _spanning_tree(self, island, adjacent):
+        """Breadth-first tree from the lowest id source (DD-004), and the contactors left out."""
+        root = min(island.sources + island.feeding_trus)
         edges, used, visited, queue = [], set(), {root}, deque([root])
         while queue:
             node = queue.popleft()
@@ -312,19 +331,50 @@ class _Analysis:
         spare = {c for n in adjacent for _, c in adjacent[n]} - used
         return edges, spare
 
-    def _solve_flow(self, island, injection):
+    def _warn_mesh(self, element, text):
+        self.warnings.append(AnalysisWarning("meshed_island", element, f"closed loop: {text}"))
+
+    def _warn_left_out(self, island):
+        """Names the contactors left out of a paralleled island, where no flow is attributed."""
+        _, spare = self._spanning_tree(island, self._island_graph(island))
+        for contactor in sorted(spare):
+            self._warn_mesh(contactor, f"contactor '{contactor}' is left out of the spanning tree")
+
+    def _still_joined(self, adjacent, contactor):
+        """True when a contactor's ends stay connected without it."""
+        start, goal = self.contactors[contactor].from_, self.contactors[contactor].to
+        seen, pending = {start}, [start]
+        while pending:
+            for neighbour, via in adjacent[pending.pop()]:
+                if via != contactor and neighbour not in seen:
+                    seen.add(neighbour)
+                    pending.append(neighbour)
+        return goal in seen
+
+    def _rated_on_loops(self, adjacent):
+        """The rated contactors, and the rated buses they or unrated contactors join (DD-026)."""
+        contactors = {c for n in adjacent for _, c in adjacent[n]}
+        looped = {c for c in contactors if self._still_joined(adjacent, c)}
+        ends = {e for c in looped for e in (self.contactors[c].from_, self.contactors[c].to)}
+        rated = {c for c in looped if self.contactors[c].capacity is not None}
+        return rated | {b for b in ends & self.buses.keys() if self.buses[b].capacity is not None}
+
+    def _solve_flow(self, island, injection, total):
         """Node balance on the tree: the net demand on the side of each edge away from the root."""
-        edges, spare = self._spanning_tree(island)
+        adjacent = self._island_graph(island)
+        edges, spare = self._spanning_tree(island, adjacent)
+        rated = self._rated_on_loops(adjacent) if spare else set()
+        for element in sorted(rated):
+            self.loop_demand[element] = total
+            left_out = "is left out of the flow solution and " if element in spare else ""
+            self._warn_mesh(element, f"'{element}' {left_out}is checked against the island total")
         for contactor in sorted(spare):
             self.flow[contactor] = _zero()
-            self.warnings.append(
-                AnalysisWarning(
-                    "meshed_island",
+            if contactor not in rated:
+                self._warn_mesh(
                     contactor,
-                    f"closed loop: contactor '{contactor}' is left out of the flow solution and "
-                    "carries 0 W",
+                    f"contactor '{contactor}' is left out of the flow solution and carries 0 W",
                 )
-            )
         net = {}
         for node in {node for edge in edges for node in edge[:2]}:
             demand = self._node_demand(node) if node in self.buses else _zero()
@@ -376,7 +426,7 @@ class _Analysis:
         for tru_id, input_id in self.tru_in.items():
             if input_id == contactor.id:
                 return self.tru_input[tru_id]
-        return self.flow.get(contactor.id, _zero())
+        return self.loop_demand.get(contactor.id) or self.flow.get(contactor.id, _zero())
 
     def records(self) -> dict[str, ElementRecord]:
         records = {}
@@ -391,13 +441,16 @@ class _Analysis:
             live = self.bus_live[id_]
             demand = None
             if live:
-                demand = _sum([self._node_demand(id_), self.leaving[id_]])
+                demand = self.loop_demand.get(id_) or _sum(
+                    [self._node_demand(id_), self.leaving[id_]]
+                )
             record = BusRecord(state=self.state.get(id_), energised=live, own=self.own[id_])
             self._fill(record, bus, demand)
             if live:
                 divisor = bus.voltage * (bus.phases if bus.type == "AC" else 1)
                 record.voltage = dict.fromkeys(BAND_NAMES, bus.voltage)
-                record.current = {b: v / divisor for b, v in demand.items()}
+                record.current = {b: _ratio(v, divisor) for b, v in demand.items()}
+                record.fed_by = sorted(self._feeders(self.island_of[id_]))
             records[id_] = record
         for id_, tru in self.trus.items():
             live = self.tru_live[id_]
@@ -435,14 +488,14 @@ def _remaining(capacity, demand, with_margin):
         remaining = 0.0
     if capacity == 0:
         return remaining, -100.0 if demand > 0 else 0.0
-    return remaining, remaining / capacity * 100
+    return remaining, _ratio(remaining, capacity) * 100
 
 
 def _load_pct(record):
     return {
         band: None
         if record.demand[band] is None or not record.capacity[band]
-        else record.demand[band] / record.capacity[band] * 100
+        else _ratio(record.demand[band], record.capacity[band]) * 100
         for band in BAND_NAMES
     }
 

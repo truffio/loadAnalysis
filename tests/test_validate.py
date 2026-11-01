@@ -1,5 +1,6 @@
 """C-VALID cases from docs/test-cases.md, except the meta case TC-VAL-007."""
 
+import json
 import math
 import re
 from pathlib import Path
@@ -28,7 +29,7 @@ from conftest import (
 )
 
 import ela.validate
-from ela.validate import check_states, validate
+from ela.validate import check_states, parse_json, validate
 
 
 def clean(doc):
@@ -627,6 +628,91 @@ def test_wrong_output_on_a_matching_bus_is_one_error(source, bus):
 @pytest.mark.tc("TC-VAL-030")
 def test_emergency_generator_takes_either_output():
     clean(fx("FX-RAT"))
+
+
+@pytest.mark.tc("TC-VAL-033")
+def test_repeated_keys_are_errors_at_their_paths():
+    text = json.dumps(fx("FX-SINGLE")).replace(
+        '"safety_margin": 0.1', '"safety_margin": 5, "safety_margin": 0.1'
+    )
+    doc, issues = parse_json(text.encode())
+    assert doc is None
+    assert [i.path for i in issues] == ["$.settings.safety_margin"]
+    assert "repeated" in issues[0].message
+
+    doc, issues = parse_json(b'{"a": {"b": 1, "b": 2}, "c": [{"d": 1}, {"d": 1, "e": 2, "d": 3}]}')
+    assert doc is None
+    assert [i.path for i in issues] == ["$.a.b", "$.c[1].d"]
+
+
+@pytest.mark.tc("TC-VAL-033")
+def test_a_repeat_inside_an_overwritten_value_is_still_found():
+    _, issues = parse_json(b'{"a": {"b": 1, "b": 2}, "a": 3}')
+    assert [i.path for i in issues] == ["$.a", "$.a.b"]
+
+
+@pytest.mark.tc("TC-VAL-033")
+def test_the_same_key_in_different_objects_is_not_repeated():
+    doc, issues = parse_json(b'[{"id": 1}, {"id": 2}, {"x": {"id": 3}}]')
+    assert issues == []
+    assert doc == [{"id": 1}, {"id": 2}, {"x": {"id": 3}}]
+
+
+@pytest.mark.tc("TC-VAL-034")
+def test_loader_accepts_a_byte_order_mark_and_reports_bad_input_at_the_root():
+    text = json.dumps(fx("FX-SINGLE-E"))
+    plain, plain_issues = parse_json(text.encode("utf-8"))
+    marked, marked_issues = parse_json(text.encode("utf-8-sig"))
+    assert plain_issues == marked_issues == []
+    assert marked == plain == fx("FX-SINGLE-E")
+    assert clean(marked).warnings == []
+    for raw in (b"{not json", b"\xff\xfe", b"", b"[" * 200000):
+        doc, issues = parse_json(raw)
+        assert doc is None
+        assert [i.path for i in issues] == ["$"]
+        assert "not valid JSON" in issues[0].message
+
+
+@pytest.mark.tc("TC-VAL-034")
+def test_loader_walks_a_deep_document_without_exhausting_the_stack():
+    deep = b'{"a": ' * 500 + b"1" + b"}" * 500
+    doc, issues = parse_json(deep)
+    assert issues == []
+    assert doc is not None
+
+
+@pytest.mark.tc("TC-VAL-035")
+@pytest.mark.parametrize("collection", ["sources", "buses", "trus", "contactors", "loads"])
+def test_crew_switch_id_is_reserved(collection):
+    doc = fx("FX-ALLKINDS")
+    doc["buses"][3]["id"] = "DCB"
+    assert doc["buses"][3]["crew_switch"] is True
+    if collection == "buses":
+        doc["buses"].append({**ac("DCB_switch"), "role": "other"})
+        path = "$.buses[4].id"
+    else:
+        target = doc[collection][0]
+        old, target["id"] = target["id"], "DCB_switch"
+        path = f"$.{collection}[0].id"
+        text = json.dumps(doc).replace(f'"{old}"', '"DCB_switch"')
+        doc = json.loads(text)
+    result = validate(doc)
+    assert has_error(result, path, "DCB_switch")
+    assert has_error(result, path, "crew switch")
+
+
+@pytest.mark.tc("TC-VAL-035")
+def test_switch_suffix_is_free_without_a_crew_switch():
+    doc = fx("FX-ALLKINDS")
+    doc["loads"].append(load("AC1_switch", "AC1", 1))
+    clean(doc)
+
+
+@pytest.mark.tc("TC-VAL-036")
+def test_no_scenarios_warns_at_scenarios():
+    result = clean(fx("FX-SINGLE"))
+    assert len(warnings_at(result, "$.scenarios")) == 1
+    assert warnings_at(clean(fx("FX-SINGLE-E")), "$.scenarios") == []
 
 
 @pytest.mark.tc("TC-VAL-031")

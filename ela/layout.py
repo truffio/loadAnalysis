@@ -12,8 +12,8 @@
 4. Position. `x` comes from difference constraints, solved by longest path from both sides and
    averaged. Spacing steps down through `SPACINGS` until the drawing fits `DRAW_WIDTH`.
 5. Routing. Straight links are drawn first, then each dogleg takes the cheapest orthogonal path on
-   a sparse grid, which never enters an item, never shares a line with another connector, and pays
-   for each bend and crossing.
+   a sparse grid, which never enters an item and pays for each bend and crossing. A connector
+   shares a line only as a last resort, and then only with one that ends on the same node.
 
 Everything is a function of the definition's contents. Ids sort naturally, so `AC2` < `AC10`.
 """
@@ -204,7 +204,7 @@ class _Network:
 
     def _add_contactors(self):
         sources = {s.id for s in self.defn.sources}
-        trus = {t.id for t in self.defn.trus}
+        trus = {t.id: t for t in self.defn.trus}
         buses = {b.id for b in self.defn.buses}
         for c in self.defn.contactors:
             self.orientation[c.id] = "vertical"
@@ -217,11 +217,16 @@ class _Network:
                 self._link(source, c.id, (c.from_, c.id) if c.from_ == source else (c.id, c.to))
                 self._link(c.id, bus, (c.from_, c.id) if c.from_ == bus else (c.id, c.to))
             else:
-                to_tru = c.to in trus
-                row = "tru_in" if to_tru else "tru_out"
+                row = self._tru_contactor_row(c, trus)
                 self._link(c.from_, c.id, (c.from_, c.id))
                 self._link(c.id, c.to, (c.id, c.to))
             self._add(c.id, "contactor", CONTACTOR_SIZE, row)
+
+    @staticmethod
+    def _tru_contactor_row(c, trus):
+        """The bus joined sets the role, not `from`/`to`, as in `ela.engine`."""
+        tru, bus = (trus[c.to], c.from_) if c.to in trus else (trus[c.from_], c.to)
+        return "tru_in" if bus == tru.input_bus else "tru_out"
 
     def _add_tie(self, c):
         """Set up a bus tie. Returns its row name."""
@@ -788,6 +793,7 @@ class _Router:
         self.yi = {y: j for j, y in enumerate(self.ys)}
         self.h_used = set()  # (i, j): the edge from node (i, j) to (i + 1, j)
         self.v_used = set()  # (i, j): the edge from node (i, j) to (i, j + 1)
+        self.drawn_ends = {}  # the same edges, by direction, to the items of what is drawn there
         self.joints = set()  # ends and bends of connectors, by (i, j)
         self.h_near = {}  # items each grid edge passes within CLEARANCE of
         self.v_near = {}
@@ -806,13 +812,18 @@ class _Router:
             for j in range(max(top - 1, 0), min(bottom, len(self.ys) - 1)):
                 self.v_near.setdefault((i, j), []).append(id_)
 
-    def claim(self, points):
+    def claim(self, points, ends):
+        """Records a drawn connector, whose end items are `ends`."""
         for a, b in itertools.pairwise(points):
             ax, ay, bx, by = self.xi[a[0]], self.yi[a[1]], self.xi[b[0]], self.yi[b[1]]
             if ay == by:
                 self.h_used.update((i, ay) for i in range(min(ax, bx), max(ax, bx)))
+                edges = [(EAST, i, ay) for i in range(min(ax, bx), max(ax, bx))]
             else:
                 self.v_used.update((ax, j) for j in range(min(ay, by), max(ay, by)))
+                edges = [(SOUTH, ax, j) for j in range(min(ay, by), max(ay, by))]
+            for edge in edges:
+                self.drawn_ends.setdefault(edge, set()).update(ends)
         self.joints.update((self.xi[p[0]], self.yi[p[1]]) for p in points)
 
     def _blocked(self, i, j, direction, ends):
@@ -840,14 +851,26 @@ class _Router:
             return (i, j) in self.v_used
         return (i, j - 1) in self.v_used
 
+    def _foreign(self, i, j, direction, ends):
+        """True when an edge already carries a connector sharing no item with `ends`."""
+        if not self._used(i, j, direction):
+            return False
+        horizontal = direction in (EAST, WEST)
+        edge = (EAST if horizontal else SOUTH, i - (direction == WEST), j - (direction == NORTH))
+        return not self.drawn_ends[edge] & ends
+
     def _through(self, i, j, direction):
         """True when moving straight through a node crosses a connector."""
         if direction in (EAST, WEST):
             return (i, j) in self.v_used and (i, j - 1) in self.v_used
         return (i, j) in self.h_used and (i - 1, j) in self.h_used
 
-    def route(self, starts, goals, ends, allow_overlap=False):
-        """`starts` and `goals` are (x, y, direction). Returns corner points, or None."""
+    def route(self, starts, goals, ends, allow_overlap=False, any_connector=False):
+        """`starts` and `goals` are (x, y, direction). Returns corner points, or None.
+
+        `allow_overlap` lets a route share a line with a connector that ends on one of its items,
+        and `any_connector` with any connector.
+        """
         goal_states = {(self.xi[x], self.yi[y], d) for x, y, d in goals}
         begin = {(self.xi[x], self.yi[y], d) for x, y, d in starts}
         best = dict.fromkeys(begin, 0)
@@ -873,6 +896,8 @@ class _Router:
                     penalty += OVERLAP_COST
                 if penalty >= OVERLAP_COST and not allow_overlap:
                     continue
+                if not any_connector and self._foreign(i, j, nd, ends):
+                    continue
                 step = abs(self.xs[ni] - self.xs[i]) + abs(self.ys[nj] - self.ys[j]) + penalty
                 new = (ni, nj, nd)
                 if cost + step < best.get(new, float("inf")):
@@ -891,10 +916,10 @@ class _Router:
         if (i, j) in self.joints:
             return penalty + OVERLAP_COST
         if next_direction != direction:
-            return penalty + BEND_COST + (OVERLAP_COST if self._any_used(i, j) else 0)
+            return penalty + BEND_COST + (OVERLAP_COST if self.any_used(i, j) else 0)
         return penalty + (CROSSING_COST if self._through(i, j, direction) else 0)
 
-    def _any_used(self, i, j):
+    def any_used(self, i, j):
         return (
             (i, j) in self.h_used
             or (i - 1, j) in self.h_used
@@ -1014,7 +1039,7 @@ class _Wiring:
 
     def _store(self, ends, first, points):
         """Records a drawn connector, with `points` running from the item `first`."""
-        self.router.claim(points)
+        self.router.claim(points, ends)
         self.connectors[ends] = points if ends[0] == first else points[::-1]
 
     def _draw_straight(self, link):
@@ -1060,6 +1085,8 @@ class _Wiring:
         points = self.router.route(starts, goals, ends)
         if points is None:
             points = self.router.route(starts, goals, ends, allow_overlap=True)
+        if points is None:
+            points = self.router.route(starts, goals, ends, allow_overlap=True, any_connector=True)
         if points is None:  # every grid route is walled in, which needs an item wider than a row
             x0, y0, _ = starts[0]
             x1, y1, _ = goals[0]
@@ -1095,7 +1122,8 @@ class _Wiring:
         router = self.router
         xs = router.xs
         lane = xs[bisect_left(xs, face) - 1] if s.on_left else xs[bisect_right(xs, face)]
-        turned = (router.xi[lane], router.yi[box.cy]) not in router.joints
+        at = (router.xi[lane], router.yi[box.cy])
+        turned = at not in router.joints and not router.any_used(*at)
         if turned:
             starts = [(lane, box.cy, NORTH), (lane, box.cy, SOUTH)]
         else:

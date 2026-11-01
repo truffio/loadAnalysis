@@ -5,14 +5,17 @@ project rules that 76.625 shows as 76.63. `format_pct` rounds half up on the sho
 representation of the float instead. Negative numbers use the ASCII hyphen-minus.
 """
 
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Context, Decimal
 
 NULL_TEXT = "—"  # em dash, shown for a value that does not apply
+EVERY_DIGIT = Context(prec=400)  # the largest float has 309 digits before the point
 
 
 def round_half_up(value: float, places: int = 2) -> Decimal:
     """`value` rounded half up at `places` decimals, taken from the shortest repr of the float."""
-    return Decimal(repr(float(value))).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+    return Decimal(repr(float(value))).quantize(
+        Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP, context=EVERY_DIGIT
+    )
 
 
 def format_pct(value, places: int = 2) -> str:
