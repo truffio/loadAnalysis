@@ -19,9 +19,10 @@ const COLUMNS = [
 ];
 
 /** The text of one summary cell: counts as they are, a value that does not apply as an em dash. */
-export function cellText(column, value) {
+export function cellText(column, value, bandLabels = {}) {
   if (value === null || value === undefined) return NULL_TEXT;
   if (column === "smallest_margin_pct") return fmtNum(value);
+  if (column === "worst_band") return bandLabels[value] || String(value);
   return String(value);
 }
 
@@ -127,7 +128,7 @@ export function initBatch(host) {
       row.append(htmlEl("td", {
         "data-col": column,
         class: column === "result" ? `result-cell ${result.result === "PASS" ? "pass" : "fail"}` : null,
-        text: cellText(column, result[column]),
+        text: cellText(column, result[column], host.bandLabels()),
       }));
     }
     const detail = htmlEl("tr", { class: "detail", "data-for": id, hidden: true },

@@ -36,11 +36,34 @@ export function htmlEl(tag, attrs, ...children) {
 // shows 76.63 and 12.0 shows 12. JavaScript's toFixed works on the binary value and gets some of
 // these wrong. A negative number is written with the ASCII hyphen-minus.
 
+// From 1e21 up, String() and toFixed() switch to exponent notation, and the exact digits of such a
+// number mean nothing to a reader. Those values are shown in exponent form, whatever the places.
+const EXPONENT_FROM = 1e21;
+
+function isHuge(value) {
+  return Math.abs(value) >= EXPONENT_FROM;
+}
+
+/** 1.2345e+25 as "1.23e+25", with `places` decimals in the mantissa, or fewer when `trim` is set. */
+function exponentForm(value, places, trim) {
+  let text = Math.abs(value).toExponential(places);
+  if (trim) text = text.replace(/\.?0+e/, "e");
+  return (value < 0 ? "-" : "") + text;
+}
+
+/** The plain decimal digits of a positive number, never in exponent notation. */
+function plainDecimal(abs) {
+  const text = String(abs);
+  const match = /^(\d)(?:\.(\d+))?e-(\d+)$/.exec(text);
+  if (!match) return text;
+  // A tiny number, 1.5e-7 for example: write it out. It rounds to zero at any sane `places`.
+  const [, lead, rest = "", exponent] = match;
+  return `0.${"0".repeat(Number(exponent) - 1)}${lead}${rest}`;
+}
+
 function scaledDigits(value, places) {
   // |value| rounded half up at `places` decimals, as a BigInt of that many hundredths and so on.
-  const abs = Math.abs(value);
-  let text = String(abs);
-  if (/e/i.test(text)) text = abs.toFixed(20); // tiny numbers only, which round to zero anyway
+  const text = plainDecimal(Math.abs(value));
   const [whole, fraction = ""] = text.split(".");
   const padded = fraction.padEnd(places + 1, "0");
   let digits = BigInt(whole + padded.slice(0, places));
@@ -53,9 +76,14 @@ function groupDigits(digits, places) {
   return places === 0 ? text : `${text.slice(0, -places)}.${text.slice(-places)}`;
 }
 
+function isNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 /** A number with exactly `places` decimals, half up. */
 export function fmtFixed(value, places = 2) {
-  if (value === null || value === undefined || Number.isNaN(value)) return NULL_TEXT;
+  if (!isNumber(value)) return NULL_TEXT;
+  if (isHuge(value)) return exponentForm(value, places, false);
   const digits = scaledDigits(value, places);
   const sign = value < 0 && digits !== 0n ? "-" : "";
   return sign + groupDigits(digits, places);
@@ -63,7 +91,8 @@ export function fmtFixed(value, places = 2) {
 
 /** A number with at most `places` decimals and no trailing zeros: 12.0 gives 12, 76.625 gives 76.63. */
 export function fmtNum(value, places = 2) {
-  if (value === null || value === undefined || Number.isNaN(value)) return NULL_TEXT;
+  if (!isNumber(value)) return NULL_TEXT;
+  if (isHuge(value)) return exponentForm(value, places, true);
   const digits = scaledDigits(value, places);
   if (digits === 0n) return "0";
   let text = groupDigits(digits, places);
@@ -73,7 +102,8 @@ export function fmtNum(value, places = 2) {
 
 /** Power to the nearest watt: whole W below 1000 W after rounding, kW with two decimals from there. */
 export function fmtPower(watts) {
-  if (watts === null || watts === undefined || Number.isNaN(watts)) return NULL_TEXT;
+  if (!isNumber(watts)) return NULL_TEXT;
+  if (isHuge(watts)) return `${exponentForm(watts, 2, false)} W`;
   const rounded = scaledDigits(watts, 0);
   const sign = watts < 0 && rounded !== 0n ? "-" : "";
   if (rounded < 1000n) return `${sign}${rounded} W`;
@@ -213,6 +243,46 @@ function failMark(width, height) {
     class: "fail-mark",
     d: `M${a} ${a}L${width - a} ${height - a}M${width - a} ${a}L${a} ${height - a}`,
   });
+}
+
+// --- Text fitting --------------------------------------------------------------------------------
+
+const ELLIPSIS = "…";
+const BAR_NAME_PAD = 8; // the name starts 5 px in from the left end of its bar, and ends 3 px short
+
+let measuring = null;
+
+/** Width in px of `string` set in the font of the text element `like`, wherever the page is shown. */
+function textWidth(like, string) {
+  if (!measuring) measuring = document.createElement("canvas").getContext("2d");
+  const style = getComputedStyle(like);
+  measuring.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  return measuring.measureText(string).width;
+}
+
+/** `name` cut to the longest start that, with an ellipsis, fits `room` px in the font of `like`. */
+export function fitText(like, name, room) {
+  if (textWidth(like, name) <= room) return name;
+  let low = 0;
+  let high = name.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (textWidth(like, `${name.slice(0, mid).trimEnd()}${ELLIPSIS}`) <= room) low = mid;
+    else high = mid - 1;
+  }
+  return `${name.slice(0, low).trimEnd()}${ELLIPSIS}`;
+}
+
+/** The box a layout gives to the text of an item, or a stand-in beside it when there is none. */
+function labelBox(item) {
+  if (item.label) return item.label;
+  const lines = ICON_KINDS.has(item.kind) ? 3 : 1;
+  return {
+    x: item.x + item.width + 3,
+    y: item.y + item.height / 2 - 6 * lines,
+    width: 72,
+    height: 12 * lines,
+  };
 }
 
 // --- The schematic -------------------------------------------------------------------------------
@@ -493,20 +563,16 @@ export class Schematic {
 
   labelText(item, lines) {
     const step = 11;
-    const box = item.label || {
-      x: item.x + item.width + 3,
-      y: item.y + item.height / 2 - 6,
-      width: 60,
-      height: 12,
-    };
+    const box = labelBox(item);
     const onLeft = item.kind !== "bus" && box.x + box.width <= item.x;
     const above = item.kind === "bus" && box.y + box.height <= item.y;
     const x = onLeft ? box.x + box.width : box.x;
     const natural = Math.max(1, Math.round(box.height / 12));
     const grow = Math.max(0, lines.length - natural) * step;
-    let y = box.y + 10;
+    // An icon's block is its name, then these lines. Anything beyond the box grows downwards.
+    const named = ICON_KINDS.has(item.kind);
+    let y = box.y + 10 + (named ? step : 0);
     if (above) y -= grow;
-    else if (item.kind !== "bus" && item.kind !== "contactor") y -= grow / 2;
     const text = svgEl("text", {
       class: `value-label${lines.some((l) => l.startsWith("over:")) ? " has-over" : ""}`,
       "data-label": item.id,
@@ -521,31 +587,35 @@ export class Schematic {
     return text;
   }
 
+  /**
+   * The name of a bus, inside its bar, or of a source or TRU, on the first line of its text block.
+   * A name too long for its room is cut with an ellipsis, never dropped. The full name and the id
+   * are in the tooltip.
+   */
   drawName(item, name, status) {
     if (!name || item.kind === "contactor" || item.kind === "crew_switch") return;
     if (item.kind === "bus") {
-      if (name.length * 5.6 + 8 > item.width) return;
-      this.layers.names.append(
-        svgEl("text", {
-          class: `bus-name status-${status}`,
-          x: item.x + 5,
-          y: item.y + item.height / 2,
-          text: name,
-        }),
-      );
+      const text = svgEl("text", {
+        class: `bus-name status-${status}`,
+        "data-name": item.id,
+        x: item.x + 5,
+        y: item.y + item.height / 2,
+      });
+      this.layers.names.append(text); // in the page, so that its font is known
+      text.textContent = fitText(text, name, item.width - BAR_NAME_PAD);
       return;
     }
-    const labelOnRight = !item.label || item.label.x >= item.x + item.width;
-    const x = labelOnRight ? item.x - 4 : item.x + item.width + 4;
-    this.layers.names.append(
-      svgEl("text", {
-        class: "icon-name",
-        x,
-        y: item.y + item.height / 2,
-        "text-anchor": labelOnRight ? "end" : "start",
-        text: name,
-      }),
-    );
+    const box = labelBox(item);
+    const onLeft = box.x + box.width <= item.x;
+    const text = svgEl("text", {
+      class: "icon-name",
+      "data-name": item.id,
+      x: onLeft ? box.x + box.width : box.x,
+      y: box.y + 10,
+      "text-anchor": onLeft ? "end" : "start",
+    });
+    this.layers.names.append(text);
+    text.textContent = fitText(text, name, box.width);
   }
 
   /** The on-screen rectangle of an element, for placing a tooltip. */

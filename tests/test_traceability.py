@@ -21,17 +21,10 @@ IMPLEMENTED_PREFIXES = [
     "MOD", "VAL", "ENG", "SMP", "BAT", "CLI", "LAY", "API", "WIN", "WBT", "DOC", "SYS", "ACC",
 ]
 
-# Cases of an implemented prefix that cannot run yet, with what they wait for. An entry must go as
-# soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
+# Cases of an implemented prefix that cannot run yet, with what they wait for. It is empty now: every
+# case has a test. An entry must go as soon as a test carries that case. TC-ENG-013, TC-ENG-041 and TC-ENG-059 are not here: their tests
 # run on the sample through `configurations()` in tests/test_engine.py.
-DEFERRED_CASES = {
-    "TC-WIN-049": "the Fed by tooltip line, front-end work on issue #68",
-    "TC-WIN-050": "the Not analysed display, front-end work on issue #68",
-    "TC-WIN-051": "power units by view, front-end work on issue #68",
-    "TC-WIN-052": "select placeholders, front-end work on issue #68",
-    "TC-WBT-013": "band labels in the batch table, front-end work on issue #68",
-    "TC-WBT-014": "batch detail in W, front-end work on issue #68",
-}
+DEFERRED_CASES = {}
 
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
